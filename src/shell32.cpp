@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _SHELL32_
 
@@ -43,6 +43,7 @@
 
 #include "MbcsBuffer.h"
 
+
 // ----------------------------------------------------------------------------
 // API
 
@@ -51,9 +52,10 @@
 // ExtractIconW
 // FindExecutableW
 
-EXTERN_C LPITEMIDLIST STDAPICALLTYPE
-SHBrowseForFolderW(
-    LPBROWSEINFOW lpbi
+EXTERN_C {
+
+OCOW_DEF(LPITEMIDLIST, SHBrowseForFolderW,
+    (LPBROWSEINFOW lpbi)
     )
 {
     char mbcsDisplayName[MAX_PATH];
@@ -87,11 +89,10 @@ SHBrowseForFolderW(
 // SHGetFileInfoW
 // SHGetNewLinkInfoW
 
-EXTERN_C BOOL STDAPICALLTYPE
-SHGetPathFromIDListW(
-    LPCITEMIDLIST pidl,
+OCOW_DEF(BOOL, SHGetPathFromIDListW,
+    (LPCITEMIDLIST pidl, 
     LPWSTR pszPath
-    )
+    ))
 {
     char mbcsPath[MAX_PATH];
     BOOL success = ::SHGetPathFromIDListA(pidl, mbcsPath);
@@ -105,13 +106,12 @@ SHGetPathFromIDListW(
     return TRUE;
 }
 
-EXTERN_C INT STDAPICALLTYPE
-ShellAboutW(
-    HWND hWnd,
-    LPCWSTR szApp,
-    LPCWSTR szOtherStuff,
+OCOW_DEF(INT, ShellAboutW,
+    (HWND hWnd, 
+    LPCWSTR szApp, 
+    LPCWSTR szOtherStuff, 
     HICON hIcon
-    )
+    ))
 {
     CMbcsBuffer mbcsApp;
     if (!mbcsApp.FromUnicode(szApp))
@@ -126,15 +126,14 @@ ShellAboutW(
 
 // ShellExecuteExW
 
-EXTERN_C HINSTANCE STDAPICALLTYPE
-ShellExecuteW(
-    HWND hwnd,
-    LPCWSTR lpOperation,
-    LPCWSTR lpFile,
-    LPCWSTR lpParameters,
-    LPCWSTR lpDirectory,
+OCOW_DEF(HINSTANCE, ShellExecuteW,
+    (HWND hwnd, 
+    LPCWSTR lpOperation, 
+    LPCWSTR lpFile, 
+    LPCWSTR lpParameters, 
+    LPCWSTR lpDirectory, 
     INT nShowCmd
-    )
+    ))
 {
     CMbcsBuffer mbcsOperation;
     if (!mbcsOperation.FromUnicode(lpOperation))
@@ -156,3 +155,4 @@ ShellExecuteW(
 }
 
 // Shell_NotifyIconW
+}//EXTERN_C

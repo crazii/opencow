@@ -80,7 +80,7 @@ CMbcsBuffer::FromUnicode(
     }
 
     if (aStringLen == -1)
-        aStringLen = ::lstrlenW(aString) + 1;
+        aStringLen = wcslen(aString) + 1;
 
     int aRequiredLen = ::WideCharToMultiByte(CP_ACP, 0,
         aString, aStringLen, NULL, 0, NULL, NULL);

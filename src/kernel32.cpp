@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _KERNEL32_
 
@@ -49,7 +49,7 @@
 # define INVALID_FILE_ATTRIBUTES    ((DWORD)-1)
 #endif
 #ifndef IS_INTRESOURCE
-# define IS_INTRESOURCE(p)          (((unsigned long)(p) >> 16) == 0UL)
+# define IS_INTRESOURCE(p)          (((unsigned long,(p) >> 16) == 0UL)
 #endif
 
 // ----------------------------------------------------------------------------
@@ -58,13 +58,55 @@
 extern HINSTANCE g_hInstanceDLL;
 extern int       g_nDebug;
 
+static void
+CopyFindDataAtoW(
+    LPWIN32_FIND_DATAA lpFindDataA,
+    LPWIN32_FIND_DATAW lpFindDataW
+    )
+{
+    lpFindDataW->dwFileAttributes = lpFindDataA->dwFileAttributes;
+    lpFindDataW->ftCreationTime   = lpFindDataA->ftCreationTime;
+    lpFindDataW->ftLastAccessTime = lpFindDataA->ftLastAccessTime;
+    lpFindDataW->ftLastWriteTime  = lpFindDataA->ftLastWriteTime;
+    lpFindDataW->nFileSizeHigh    = lpFindDataA->nFileSizeHigh;
+    lpFindDataW->nFileSizeLow     = lpFindDataA->nFileSizeLow;
+    lpFindDataW->dwReserved0      = lpFindDataA->dwReserved0;
+    lpFindDataW->dwReserved1      = lpFindDataA->dwReserved1;
+    
+    ::MultiByteToWideChar(CP_ACP, 0, lpFindDataA->cFileName, -1, 
+        lpFindDataW->cFileName, MAX_PATH);
+
+    ::MultiByteToWideChar(CP_ACP, 0, lpFindDataA->cAlternateFileName, -1, 
+        lpFindDataW->cAlternateFileName, 
+        ARRAY_SIZE(lpFindDataW->cAlternateFileName));
+}
+
+typedef struct _MsluExport {
+    const char * dllName;
+    const char * exportName;
+} MsluExport;
+static int __cdecl 
+OCOW_Compare(
+    const void * first, 
+    const void * second
+    )
+{
+    const MsluExport * term1 = reinterpret_cast<const MsluExport*>(first);
+    const MsluExport * term2 = reinterpret_cast<const MsluExport*>(second);
+    int nResult = ::strcmp(term1->dllName, term2->dllName);
+    if (nResult == 0)
+        nResult = ::strcmp(term1->exportName, term2->exportName);
+    return nResult;
+}
+
+
 // ----------------------------------------------------------------------------
 // API
+EXTERN_C {
 
-ATOM WINAPI
-AddAtomW(
-    IN LPCWSTR lpString
-    )
+OCOW_DEF(ATOM, AddAtomW,
+    (IN LPCWSTR lpString
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpString))
@@ -82,34 +124,11 @@ AddAtomW(
 // CompareStringW
 // CopyFileExW
 
-
-int WINAPI
-CompareStringW(
-    LCID Locale,
-    DWORD dwCmpFlags,
-    PCNZWCH lpString1,
-    int cchCount1,
-    PCNZWCH lpString2,
-    int cchCount2)
-{
-    CMbcsBuffer mbcsString1, mbcsString2;
-
-    if (!mbcsString1.FromUnicode(lpString1))
-        return 0;
-
-    if (!mbcsString2.FromUnicode(lpString2))
-        return 0;
-
-    return ::CompareStringA(Locale, dwCmpFlags, mbcsString1, cchCount1, mbcsString2, cchCount2);
-}
-
-
-BOOL WINAPI
-CopyFileW(
+OCOW_DEF(BOOL, CopyFileW,(
     IN LPCWSTR lpExistingFileName,
     IN LPCWSTR lpNewFileName,
     IN BOOL bFailIfExists
-    )
+    ))
 {
     CMbcsBuffer mbcsExistingFileName;
     if (!mbcsExistingFileName.FromUnicode(lpExistingFileName))
@@ -122,12 +141,11 @@ CopyFileW(
     return ::CopyFileA(mbcsExistingFileName, mbcsNewFileName, bFailIfExists);
 }
 
-BOOL WINAPI
-CreateDirectoryExW(
+OCOW_DEF(BOOL, CreateDirectoryExW,(
     IN LPCWSTR lpTemplateDirectory,
     IN LPCWSTR lpNewDirectory,
     IN LPSECURITY_ATTRIBUTES lpSecurityAttributes
-    )
+    ))
 {
     CMbcsBuffer mbcsTemplateDirectory;
     if (!mbcsTemplateDirectory.FromUnicode(lpTemplateDirectory))
@@ -140,11 +158,10 @@ CreateDirectoryExW(
     return ::CreateDirectoryExA(mbcsTemplateDirectory, mbcsNewDirectory, lpSecurityAttributes);
 }
 
-BOOL WINAPI
-CreateDirectoryW(
+OCOW_DEF(BOOL, CreateDirectoryW,(
     IN LPCWSTR lpPathName,
     IN LPSECURITY_ATTRIBUTES lpSecurityAttributes
-    )
+    ))
 {
     CMbcsBuffer mbcsPathName;
     if (!mbcsPathName.FromUnicode(lpPathName))
@@ -153,13 +170,12 @@ CreateDirectoryW(
     return ::CreateDirectoryA(mbcsPathName, lpSecurityAttributes);
 }
 
-HANDLE WINAPI
-CreateEventW(
+OCOW_DEF(HANDLE, CreateEventW,(
     IN LPSECURITY_ATTRIBUTES lpEventAttributes,
     IN BOOL bManualReset,
     IN BOOL bInitialState,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -168,26 +184,24 @@ CreateEventW(
     return ::CreateEventA(lpEventAttributes, bManualReset, bInitialState, mbcsName);
 }
 
-HANDLE WINAPI
-CreateFileMappingW(
+OCOW_DEF(HANDLE, CreateFileMappingW,(
     IN HANDLE hFile,
     IN LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
     IN DWORD flProtect,
     IN DWORD dwMaximumSizeHigh,
     IN DWORD dwMaximumSizeLow,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
         return NULL;
 
-    return ::CreateFileMappingA(hFile, lpFileMappingAttributes, flProtect,
+    return ::CreateFileMappingA(hFile, lpFileMappingAttributes, flProtect, 
         dwMaximumSizeHigh, dwMaximumSizeLow, mbcsName);
 }
 
-HANDLE WINAPI
-CreateFileW(
+OCOW_DEF(HANDLE, CreateFileW,(
     IN LPCWSTR lpFileName,
     IN DWORD dwDesiredAccess,
     IN DWORD dwShareMode,
@@ -195,24 +209,23 @@ CreateFileW(
     IN DWORD dwCreationDisposition,
     IN DWORD dwFlagsAndAttributes,
     IN HANDLE hTemplateFile
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
         return INVALID_HANDLE_VALUE;
 
-    return ::CreateFileA(mbcsFileName, dwDesiredAccess, dwShareMode,
+    return ::CreateFileA(mbcsFileName, dwDesiredAccess, dwShareMode, 
         lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes,
         hTemplateFile);
 }
 
-HANDLE WINAPI
-CreateMailslotW(
+OCOW_DEF(HANDLE, CreateMailslotW,(
     IN LPCWSTR lpName,
     IN DWORD nMaxMessageSize,
     IN DWORD lReadTimeout,
     IN LPSECURITY_ATTRIBUTES lpSecurityAttributes
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -221,12 +234,11 @@ CreateMailslotW(
     return ::CreateMailslotA(mbcsName, nMaxMessageSize, lReadTimeout, lpSecurityAttributes);
 }
 
-HANDLE WINAPI
-CreateMutexW(
+OCOW_DEF(HANDLE, CreateMutexW,(
     IN LPSECURITY_ATTRIBUTES lpMutexAttributes,
     IN BOOL bInitialOwner,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -237,8 +249,7 @@ CreateMutexW(
 
 // CreateNamedPipeW
 
-BOOL WINAPI
-CreateProcessW(
+OCOW_DEF(BOOL, CreateProcessW,(
     IN LPCWSTR lpApplicationName,
     IN LPWSTR lpCommandLine,
     IN LPSECURITY_ATTRIBUTES lpProcessAttributes,
@@ -249,7 +260,7 @@ CreateProcessW(
     IN LPCWSTR lpCurrentDirectory,
     IN LPSTARTUPINFOW lpStartupInfo,
     OUT LPPROCESS_INFORMATION lpProcessInformation
-    )
+    ))
 {
     CMbcsBuffer mbcsApplicationName;
     if (!mbcsApplicationName.FromUnicode(lpApplicationName))
@@ -289,19 +300,18 @@ CreateProcessW(
         return FALSE;
     startupInfoA.lpTitle = mbcsTitle;
 
-    return ::CreateProcessA(mbcsApplicationName, mbcsCommandLine,
-        lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+    return ::CreateProcessA(mbcsApplicationName, mbcsCommandLine, 
+        lpProcessAttributes, lpThreadAttributes, bInheritHandles, 
         dwCreationFlags, lpEnvironment, mbcsCurrentDirectory,
         &startupInfoA, lpProcessInformation);
 }
 
-extern "C" HANDLE WINAPI
-OCOW_CreateSemaphoreW(
+OCOW_DEF(HANDLE, CreateSemaphoreW,(
     IN LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
     IN LONG lInitialCount,
     IN LONG lMaximumCount,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -316,15 +326,15 @@ typedef HANDLE (WINAPI *fpCreateWaitableTimerA)(
     IN LPCSTR lpTimerName
     );
 
-HANDLE WINAPI
-CreateWaitableTimerW(
+static fpCreateWaitableTimerA pCreateWaitableTimerA; //move out to emit cxa_guard_* for libstdc++ dependency
+OCOW_DEF(HANDLE, CreateWaitableTimerW,(
     IN LPSECURITY_ATTRIBUTES lpTimerAttributes,
     IN BOOL bManualReset,
     IN LPCWSTR lpTimerName
-    )
+    ))
 {
-    static fpCreateWaitableTimerA pCreateWaitableTimerA =
-        (fpCreateWaitableTimerA) ::GetProcAddress(
+    if(!pCreateWaitableTimerA)
+        pCreateWaitableTimerA = (fpCreateWaitableTimerA) ::GetProcAddress(
             ::GetModuleHandleA("kernel32.dll"), "CreateWaitableTimerA");
     if (!pCreateWaitableTimerA) {
         SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
@@ -338,10 +348,9 @@ CreateWaitableTimerW(
     return pCreateWaitableTimerA(lpTimerAttributes, bManualReset, mbcsTimerName);
 }
 
-BOOL WINAPI
-DeleteFileW(
+OCOW_DEF(BOOL, DeleteFileW,(
     IN LPCWSTR lpFileName
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
@@ -360,12 +369,12 @@ DeleteFileW(
 // EnumSystemLocalesW
 // EnumTimeFormatsW
 
-DWORD WINAPI
-ExpandEnvironmentStringsW(
+
+OCOW_DEF(DWORD, ExpandEnvironmentStringsW,(
     IN LPCWSTR lpSrc,
     OUT LPWSTR lpDst,
     IN DWORD nSize
-    )
+    ))
 {
     CMbcsBuffer mbcsSrc;
     if (!mbcsSrc.FromUnicode(lpSrc))
@@ -392,14 +401,14 @@ ExpandEnvironmentStringsW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsDst, nDstLen + 1, lpDst, nSize);
-    return nRequiredSize; // include the NULL
+    return nRequiredSize; // include the NULL 
 }
 
-VOID WINAPI
-FatalAppExitW(
+
+OCOW_DEF(VOID, FatalAppExitW,(
     IN UINT uAction,
     IN LPCWSTR lpMessageText
-    )
+    ))
 {
     CMbcsBuffer mbcsMessageText;
     mbcsMessageText.FromUnicode(lpMessageText);
@@ -408,10 +417,10 @@ FatalAppExitW(
 
 // FillConsoleOutputCharacterW
 
-ATOM WINAPI
-FindAtomW(
+
+OCOW_DEF(ATOM, FindAtomW,(
     IN LPCWSTR lpString
-    )
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpString))
@@ -420,12 +429,12 @@ FindAtomW(
     return ::FindAtomA(mbcsString);
 }
 
-HANDLE WINAPI
-FindFirstChangeNotificationW(
+
+OCOW_DEF(HANDLE, FindFirstChangeNotificationW,(
     IN LPCWSTR lpPathName,
     IN BOOL bWatchSubtree,
     IN DWORD dwNotifyFilter
-    )
+    ))
 {
     CMbcsBuffer mbcsPathName;
     if (!mbcsPathName.FromUnicode(lpPathName))
@@ -434,53 +443,29 @@ FindFirstChangeNotificationW(
     return ::FindFirstChangeNotificationA(mbcsPathName, bWatchSubtree, dwNotifyFilter);
 }
 
-static void
-CopyFindDataAtoW(
-    LPWIN32_FIND_DATAA lpFindDataA,
-    LPWIN32_FIND_DATAW lpFindDataW
-    )
-{
-    lpFindDataW->dwFileAttributes = lpFindDataA->dwFileAttributes;
-    lpFindDataW->ftCreationTime   = lpFindDataA->ftCreationTime;
-    lpFindDataW->ftLastAccessTime = lpFindDataA->ftLastAccessTime;
-    lpFindDataW->ftLastWriteTime  = lpFindDataA->ftLastWriteTime;
-    lpFindDataW->nFileSizeHigh    = lpFindDataA->nFileSizeHigh;
-    lpFindDataW->nFileSizeLow     = lpFindDataA->nFileSizeLow;
-    lpFindDataW->dwReserved0      = lpFindDataA->dwReserved0;
-    lpFindDataW->dwReserved1      = lpFindDataA->dwReserved1;
 
-    ::MultiByteToWideChar(CP_ACP, 0, lpFindDataA->cFileName, -1,
-        lpFindDataW->cFileName, MAX_PATH);
-
-    ::MultiByteToWideChar(CP_ACP, 0, lpFindDataA->cAlternateFileName, -1,
-        lpFindDataW->cAlternateFileName,
-        ARRAY_SIZE(lpFindDataW->cAlternateFileName));
-}
-
-HANDLE WINAPI
-FindFirstFileW(
+OCOW_DEF(HANDLE, FindFirstFileW,(
     IN LPCWSTR lpFileName,
     OUT LPWIN32_FIND_DATAW lpFindFileData
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
         return INVALID_HANDLE_VALUE;
-
+        
     WIN32_FIND_DATAA findDataA;
     HANDLE hFile = ::FindFirstFileA(mbcsFileName, &findDataA);
     if (hFile == INVALID_HANDLE_VALUE)
         return INVALID_HANDLE_VALUE;
-
     CopyFindDataAtoW(&findDataA, lpFindFileData);
     return hFile;
 }
 
-BOOL WINAPI
-FindNextFileW(
+
+OCOW_DEF(BOOL, FindNextFileW,(
     IN HANDLE hFindFile,
     OUT LPWIN32_FIND_DATAW lpFindFileData
-    )
+    ))
 {
     WIN32_FIND_DATAA findDataA;
     BOOL bSuccess = ::FindNextFileA(hFindFile, &findDataA);
@@ -489,13 +474,13 @@ FindNextFileW(
     return bSuccess;
 }
 
-HRSRC WINAPI
-FindResourceExW(
+
+OCOW_DEF(HRSRC, FindResourceExW,(
     IN HMODULE hModule,
     IN LPCWSTR lpType,
     IN LPCWSTR lpName,
     IN WORD    wLanguage
-    )
+    ))
 {
     LPCSTR lpTypeA = (LPCSTR) lpType;
     CMbcsBuffer mbcsType;
@@ -516,12 +501,12 @@ FindResourceExW(
     return ::FindResourceExA(hModule, lpTypeA, lpNameA, wLanguage);
 }
 
-HRSRC WINAPI
-FindResourceW(
+
+OCOW_DEF(HRSRC, FindResourceW,(
     IN HMODULE hModule,
     IN LPCWSTR lpName,
     IN LPCWSTR lpType
-    )
+    ))
 {
     LPCSTR lpTypeA = (LPCSTR) lpType;
     CMbcsBuffer mbcsType;
@@ -544,22 +529,22 @@ FindResourceW(
 
 // FormatMessageW
 
-BOOL WINAPI
-FreeEnvironmentStringsW(
+
+OCOW_DEF(BOOL, FreeEnvironmentStringsW,(
     IN LPWSTR lpStrings
-    )
+    ))
 {
     if (lpStrings)
         ::free(lpStrings);
     return TRUE;
 }
 
-UINT WINAPI
-GetAtomNameW(
+
+OCOW_DEF(UINT, GetAtomNameW,(
     IN ATOM nAtom,
     OUT LPWSTR lpBuffer,
     IN int nSize
-    )
+    ))
 {
     CMbcsBuffer mbcsBuffer;
     UINT uiLen = ::GetAtomNameA(nAtom, mbcsBuffer, mbcsBuffer.BufferSize());
@@ -576,7 +561,7 @@ GetAtomNameW(
 }
 
 //TODO: MSLU adds support for CP_UTF7 and CP_UTF8
-extern "C" BOOL WINAPI
+BOOL WINAPI
 OCOW_GetCPInfo(
     IN UINT       CodePage,
     OUT LPCPINFO  lpCPInfo
@@ -586,12 +571,12 @@ OCOW_GetCPInfo(
 }
 
 //TODO: MSLU adds support for CP_UTF7 and CP_UTF8
-BOOL WINAPI
-GetCPInfoExW(
+
+OCOW_DEF(BOOL, GetCPInfoExW,(
     IN UINT          CodePage,
     IN DWORD         dwFlags,
     OUT LPCPINFOEXW  lpCPInfoEx
-    )
+    ))
 {
     CPINFOEXA cpInfoA;
     BOOL bSuccess = ::GetCPInfoExA(CodePage, dwFlags, &cpInfoA);
@@ -610,11 +595,11 @@ GetCPInfoExW(
 
 // GetCalendarInfoW
 
-BOOL WINAPI
-GetComputerNameW(
+
+OCOW_DEF(BOOL, GetComputerNameW,(
     OUT LPWSTR lpBuffer,
     IN OUT LPDWORD lpnSize
-    )
+    ))
 {
     CMbcsBuffer mbcsBuffer;
     DWORD dwLen = mbcsBuffer.BufferSize();
@@ -636,11 +621,11 @@ GetComputerNameW(
 // GetConsoleTitleW
 // GetCurrencyFormatW
 
-DWORD WINAPI
-GetCurrentDirectoryW(
+
+OCOW_DEF(DWORD, GetCurrentDirectoryW,(
     IN DWORD uSize,
     OUT LPWSTR lpBuffer
-    )
+    ))
 {
     DWORD dwResult = 0;
     CMbcsBuffer mbcsBuffer;
@@ -663,7 +648,7 @@ GetCurrentDirectoryW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, uSize);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
 // GetDateFormatW
@@ -676,16 +661,16 @@ typedef BOOL (WINAPI *fpGetDiskFreeSpaceExA)(
     OUT PULARGE_INTEGER lpTotalNumberOfFreeBytes
     );
 
-BOOL WINAPI
-GetDiskFreeSpaceExW(
+
+static fpGetDiskFreeSpaceExA pGetDiskFreeSpaceExA; //move out to emit cxa_guard_* for libstdc++ dependency
+OCOW_DEF(BOOL, GetDiskFreeSpaceExW,(
     IN LPCWSTR lpDirectoryName,
     OUT PULARGE_INTEGER lpFreeBytesAvailableToCaller,
     OUT PULARGE_INTEGER lpTotalNumberOfBytes,
     OUT PULARGE_INTEGER lpTotalNumberOfFreeBytes
-    )
+    ))
 {
-    // dynamically loaded
-    static fpGetDiskFreeSpaceExA pGetDiskFreeSpaceExA = 0;
+    // dynamically loaded 
     if (!pGetDiskFreeSpaceExA) {
         pGetDiskFreeSpaceExA = (fpGetDiskFreeSpaceExA)
             ::GetProcAddress(::GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA");
@@ -703,14 +688,14 @@ GetDiskFreeSpaceExW(
         lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes);
 }
 
-BOOL WINAPI
-GetDiskFreeSpaceW(
+
+OCOW_DEF(BOOL, GetDiskFreeSpaceW,(
     IN LPCWSTR lpRootPathName,
     OUT LPDWORD lpSectorsPerCluster,
     OUT LPDWORD lpBytesPerSector,
     OUT LPDWORD lpNumberOfFreeClusters,
     OUT LPDWORD lpTotalNumberOfClusters
-    )
+    ))
 {
     CMbcsBuffer mbcsRootPathName;
     if (!mbcsRootPathName.FromUnicode(lpRootPathName))
@@ -720,10 +705,10 @@ GetDiskFreeSpaceW(
         lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
 }
 
-UINT WINAPI
-GetDriveTypeW(
+
+OCOW_DEF(UINT, GetDriveTypeW,(
     IN LPCWSTR lpRootPathName
-    )
+    ))
 {
     CMbcsBuffer mbcsRootPathName;
     if (!mbcsRootPathName.FromUnicode(lpRootPathName))
@@ -732,10 +717,10 @@ GetDriveTypeW(
     return ::GetDriveTypeA(mbcsRootPathName);
 }
 
-LPWSTR WINAPI
-GetEnvironmentStringsW(
+
+OCOW_DEF(LPWSTR, GetEnvironmentStringsW,(
     VOID
-    )
+    ))
 {
     LPSTR pStringsA = ::GetEnvironmentStringsA();
     if (!pStringsA)
@@ -767,12 +752,12 @@ GetEnvironmentStringsW(
     return pStringsW;
 }
 
-DWORD WINAPI
-GetEnvironmentVariableW(
+
+OCOW_DEF(DWORD, GetEnvironmentVariableW,(
     IN LPCWSTR lpName,
     OUT LPWSTR lpBuffer,
     IN DWORD nSize
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -799,15 +784,25 @@ GetEnvironmentVariableW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, nSize);
-    return nRequiredSize - 1; // don't include NULL
+    return nRequiredSize - 1; // don't include NULL 
 }
 
-// GetFileAttributesExW
+OCOW_DEF(BOOL, GetFileAttributesExW,(
+    IN LPCWSTR lpFileName,
+    IN GET_FILEEX_INFO_LEVELS  fInfoLevelId,
+    OUT LPVOID                 lpFileInformation
+    ))
+{
+    CMbcsBuffer mbcsFileName;
+    if (!mbcsFileName.FromUnicode(lpFileName))
+        return INVALID_FILE_ATTRIBUTES;
 
-DWORD WINAPI
-GetFileAttributesW(
+    return ::GetFileAttributesExA(mbcsFileName, fInfoLevelId, lpFileInformation);
+}
+
+OCOW_DEF(DWORD, GetFileAttributesW,(
     IN LPCWSTR lpFileName
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
@@ -816,13 +811,13 @@ GetFileAttributesW(
     return ::GetFileAttributesA(mbcsFileName);
 }
 
-DWORD WINAPI
-GetFullPathNameW(
+
+OCOW_DEF(DWORD, GetFullPathNameW,(
     IN LPCWSTR lpFileName,
     IN DWORD uSize,
     OUT LPWSTR lpBuffer,
     OUT LPWSTR *lpFilePart
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
@@ -861,16 +856,16 @@ GetFullPathNameW(
         *lpFilePart = pFilePart;
     }
 
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
 // GetLocaleInfoW
 
-DWORD WINAPI
-GetLogicalDriveStringsW(
+
+OCOW_DEF(DWORD, GetLogicalDriveStringsW,(
     IN DWORD nBufferLength,
     OUT LPWSTR lpBuffer
-    )
+    ))
 {
     CMbcsBuffer mbcsDriveStrings;
     if (!mbcsDriveStrings.SetCapacity(nBufferLength))
@@ -879,7 +874,7 @@ GetLogicalDriveStringsW(
     int len = ::GetLogicalDriveStringsA(mbcsDriveStrings.BufferSize(), mbcsDriveStrings);
     if (len > 0 && len < mbcsDriveStrings.BufferSize()) {
         // include terminating null character by using len + 1
-        int nResult = ::MultiByteToWideChar(CP_ACP, 0, mbcsDriveStrings,
+        int nResult = ::MultiByteToWideChar(CP_ACP, 0, mbcsDriveStrings, 
             len + 1, lpBuffer, nBufferLength);
         if (nResult == 0) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
@@ -895,12 +890,12 @@ GetLogicalDriveStringsW(
     return len;
 }
 
-DWORD WINAPI
-GetLongPathNameW(
+
+OCOW_DEF(DWORD, GetLongPathNameW,(
     IN LPCWSTR  lpszShortPath,
     OUT LPWSTR  lpszLongPath,
     IN DWORD    cchBuffer
-    )
+    ))
 {
     CMbcsBuffer mbcsShortPath;
     if (!mbcsShortPath.FromUnicode(lpszShortPath))
@@ -927,15 +922,15 @@ GetLongPathNameW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsLongPath, nLongPathLen + 1, lpszLongPath, cchBuffer);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
-DWORD WINAPI
-GetModuleFileNameW(
+
+OCOW_DEF(DWORD, GetModuleFileNameW,(
     IN HMODULE hModule,
     OUT LPWSTR lpFilename,
     IN DWORD nSize
-    )
+    ))
 {
     CMbcsBuffer mbcsFilename;
     if (!mbcsFilename.SetCapacity(nSize))
@@ -948,10 +943,10 @@ GetModuleFileNameW(
     return (DWORD) ::MultiByteToWideChar(CP_ACP, 0, mbcsFilename, -1, lpFilename, nSize);
 }
 
-extern "C" HMODULE WINAPI
-OCOW_GetModuleHandleW(
+
+OCOW_DEF(HMODULE, GetModuleHandleW,(
     IN LPCWSTR lpModuleName
-    )
+    ))
 {
     CMbcsBuffer mbcsModuleName;
     if (!mbcsModuleName.FromUnicode(lpModuleName))
@@ -967,33 +962,14 @@ OCOW_GetModuleHandleW(
 // GetPrivateProfileSectionW
 // GetPrivateProfileStringW
 // GetPrivateProfileStructW
-
-typedef struct _MsluExport {
-    const char * dllName;
-    const char * exportName;
-} MsluExport;
-
-static int __cdecl
-OCOW_Compare(
-    const void * first,
-    const void * second
-    )
-{
-    const MsluExport * term1 = reinterpret_cast<const MsluExport*>(first);
-    const MsluExport * term2 = reinterpret_cast<const MsluExport*>(second);
-    int nResult = ::strcmp(term1->dllName, term2->dllName);
-    if (nResult == 0)
-        nResult = ::strcmp(term1->exportName, term2->exportName);
-    return nResult;
-}
-
-extern "C" FARPROC WINAPI
+#if !defined(STATIC_OPENCOW)
+FARPROC WINAPI
 OCOW_GetProcAddress(
     IN HMODULE hModule,
     IN LPCSTR lpProcName
     )
 {
-    // we need to catch any request for a known wrapped MSLU function
+    // we need to catch any request for a known wrapped MSLU function 
     // and redirect it to a GetProcAddress to this DLL. This list is generated
     // from the libunicows file symbols.txt using manual regexp replacement to
     // create the proper format and sorting so that bsearch works correctly.
@@ -1530,8 +1506,8 @@ OCOW_GetProcAddress(
             return NULL;
     }
 
-    // determine the path for the DLL that they have requested the
-    // function for.
+    // determine the path for the DLL that they have requested the 
+    // function for. 
     char szModulePath[MAX_PATH+1];
     if (!::GetModuleFileNameA(hModule, szModulePath, sizeof(szModulePath)))
         return NULL;
@@ -1548,9 +1524,9 @@ OCOW_GetProcAddress(
     {
         MsluExport searchTerm = { pszModuleName, lpProcName };
         MsluExport * pEntry = (MsluExport *) ::bsearch(
-            &searchTerm, rgCheckedExports,
+            &searchTerm, rgCheckedExports, 
             sizeof(rgCheckedExports)/sizeof(rgCheckedExports[0]),
-            sizeof(rgCheckedExports[0]),
+            sizeof(rgCheckedExports[0]), 
             OCOW_Compare);
         if (pEntry) {
             FARPROC pProc = ::GetProcAddress(g_hInstanceDLL, lpProcName);
@@ -1565,7 +1541,7 @@ OCOW_GetProcAddress(
                 lstrcatA(szMessage, pszModuleName);
                 lstrcatA(szMessage, "'. Press cancel to disable getprocaddress notifications.");
 
-                int nResult = ::MessageBoxA(NULL, szMessage, "opencow",
+                int nResult = ::MessageBoxA(NULL, szMessage, "opencow", 
                     MB_OKCANCEL | MB_SETFOREGROUND);
                 if (nResult == IDCANCEL)
                     g_nDebug = 1;
@@ -1577,17 +1553,17 @@ OCOW_GetProcAddress(
     // if we haven't found the procedure we pass it on to the kernel
     return ::GetProcAddress(hModule, lpProcName);
 }
-
+#endif
 // GetProfileIntW
 // GetProfileSectionW
 // GetProfileStringW
 
-DWORD WINAPI
-GetShortPathNameW(
+
+OCOW_DEF(DWORD, GetShortPathNameW,(
     IN LPCWSTR  lpszLongPath,
     OUT LPWSTR  lpszShortPath,
     IN DWORD    cchBuffer
-    )
+    ))
 {
     CMbcsBuffer mbcsLongPath;
     if (!mbcsLongPath.FromUnicode(lpszLongPath))
@@ -1614,13 +1590,14 @@ GetShortPathNameW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsShortPath, nShortPathLen + 1, lpszShortPath, cchBuffer);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
-VOID WINAPI
-GetStartupInfoW(
+#if 0
+
+OCOW_DEF(VOID, GetStartupInfoW,(
     OUT LPSTARTUPINFOW lpStartupInfo
-    )
+    ))
 {
     // we use static buffers here because they must be valid for the caller
     // to use after we have returned. Also, we know that they will not change
@@ -1657,30 +1634,30 @@ GetStartupInfoW(
     if (startupInfoA.lpTitle)
         lpStartupInfo->lpTitle = wszTitle;
 }
-
+#endif
 // GetStringTypeExW
 
-BOOL WINAPI
-GetStringTypeW(
+
+OCOW_DEF(BOOL, GetStringTypeW,(
     IN DWORD    dwInfoType,
     IN LPCWSTR  lpSrcStr,
     IN int      cchSrc,
     OUT LPWORD  lpCharType
-    )
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpSrcStr, cchSrc))
         return FALSE;
 
-    return ::GetStringTypeA(LOCALE_SYSTEM_DEFAULT, dwInfoType,
+    return ::GetStringTypeA(LOCALE_SYSTEM_DEFAULT, dwInfoType, 
         mbcsString, mbcsString.Length(), lpCharType);
 }
 
-UINT WINAPI
-GetSystemDirectoryW(
+
+OCOW_DEF(UINT, GetSystemDirectoryW,(
     OUT LPWSTR lpBuffer,
     IN UINT uSize
-    )
+    ))
 {
     DWORD dwResult = 0;
     CMbcsBuffer mbcsBuffer;
@@ -1703,14 +1680,14 @@ GetSystemDirectoryW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, uSize);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
-UINT WINAPI
-GetSystemWindowsDirectoryW(
+
+OCOW_DEF(UINT, GetSystemWindowsDirectoryW,(
     OUT LPWSTR lpBuffer,
     IN UINT uSize
-    )
+    ))
 {
     DWORD dwResult = 0;
     CMbcsBuffer mbcsBuffer;
@@ -1721,7 +1698,7 @@ GetSystemWindowsDirectoryW(
         }
 
         // The GetSystemWindowsDirectoryA function doesn't exist on Windows 95/98/ME.
-        // As the result is the shared windows directory, this is the same as the
+        // As the result is the shared windows directory, this is the same as the 
         // standard GetWindowsDirectoryA call on these platforms.
         dwResult = ::GetWindowsDirectoryA(mbcsBuffer, (DWORD) mbcsBuffer.BufferSize());
         if (!dwResult)
@@ -1736,16 +1713,16 @@ GetSystemWindowsDirectoryW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, uSize);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
-UINT WINAPI
-GetTempFileNameW(
+
+OCOW_DEF(UINT, GetTempFileNameW,(
     IN LPCWSTR lpPathName,
     IN LPCWSTR lpPrefixString,
     IN UINT uUnique,
     OUT LPWSTR lpTempFileName
-    )
+    ))
 {
     CMbcsBuffer mbcsPathName;
     if (!mbcsPathName.FromUnicode(lpPathName))
@@ -1764,11 +1741,11 @@ GetTempFileNameW(
     return uiResult;
 }
 
-DWORD WINAPI
-GetTempPathW(
+
+OCOW_DEF(DWORD, GetTempPathW,(
     IN DWORD uSize,
     OUT LPWSTR lpBuffer
-    )
+    ))
 {
     DWORD dwResult = 0;
     CMbcsBuffer mbcsBuffer;
@@ -1791,18 +1768,17 @@ GetTempPathW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, uSize);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
 // GetTimeFormatW
 // GetVersionExW
 // GetVolumeInformationW
 
-UINT WINAPI
-GetWindowsDirectoryW(
+OCOW_DEF(UINT, GetWindowsDirectoryW,(
     OUT LPWSTR lpBuffer,
     IN UINT uSize
-    )
+    ))
 {
     DWORD dwResult = 0;
     CMbcsBuffer mbcsBuffer;
@@ -1825,13 +1801,13 @@ GetWindowsDirectoryW(
         return (DWORD) nRequiredSize;
 
     ::MultiByteToWideChar(CP_ACP, 0, mbcsBuffer, nBufferLen + 1, lpBuffer, uSize);
-    return nRequiredSize - 1; // do not include the NULL
+    return nRequiredSize - 1; // do not include the NULL 
 }
 
-ATOM WINAPI
-GlobalAddAtomW(
+
+OCOW_DEF(ATOM, GlobalAddAtomW,(
     IN LPCWSTR lpString
-    )
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpString))
@@ -1840,10 +1816,10 @@ GlobalAddAtomW(
     return ::GlobalAddAtomA(mbcsString);
 }
 
-ATOM WINAPI
-GlobalFindAtomW(
+
+OCOW_DEF(ATOM, GlobalFindAtomW,(
     IN LPCWSTR lpString
-    )
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpString))
@@ -1852,13 +1828,11 @@ GlobalFindAtomW(
     return ::GlobalFindAtomA(mbcsString);
 }
 
-UINT
-WINAPI
-GlobalGetAtomNameW(
+OCOW_DEF(UINT, GlobalGetAtomNameW,(
     IN ATOM nAtom,
     OUT LPWSTR lpBuffer,
     IN int nSize
-    )
+    ))
 {
     CMbcsBuffer mbcsBuffer;
     UINT uiLen = ::GlobalGetAtomNameA(nAtom, mbcsBuffer, mbcsBuffer.BufferSize());
@@ -1874,11 +1848,11 @@ GlobalGetAtomNameW(
     return (UINT) (nLen - 1);
 }
 
-BOOL WINAPI
-IsBadStringPtrW(
+
+OCOW_DEF(BOOL, IsBadStringPtrW,(
     IN LPCWSTR lpsz,
     IN UINT_PTR ucchMax
-    )
+    ))
 {
     if (ucchMax == 0)
         return 0;
@@ -1896,8 +1870,8 @@ IsBadStringPtrW(
     return 0;
 }
 
-//TODO: MSLU adds support for CP_UTF7 and CP_UTF8
-extern "C" BOOL WINAPI
+//TODO: MSLU adds support for CP_UTF7 and CP_UTF8 
+BOOL WINAPI
 OCOW_IsValidCodePage(
     IN UINT  CodePage
     )
@@ -1905,23 +1879,23 @@ OCOW_IsValidCodePage(
     return ::IsValidCodePage(CodePage);
 }
 
-//TODO: MSLU adds support for CP_UTF7 and CP_UTF8
-int WINAPI
-LCMapStringW(
+//TODO: MSLU adds support for CP_UTF7 and CP_UTF8 
+
+OCOW_DEF(int, LCMapStringW,(
     IN LCID     Locale,
     IN DWORD    dwMapFlags,
     IN LPCWSTR  lpSrcStr,
     IN int      cchSrc,
     OUT LPWSTR  lpDestStr,
     IN int      cchDest
-    )
+    ))
 {
     CMbcsBuffer mbcsString;
     if (!mbcsString.FromUnicode(lpSrcStr, cchSrc))
         return 0;
 
     // get the buffer size required
-    int nRequired = ::LCMapStringA(Locale, dwMapFlags,
+    int nRequired = ::LCMapStringA(Locale, dwMapFlags, 
         mbcsString, mbcsString.Length(), 0, 0);
     if (nRequired == 0)
         return 0;
@@ -1932,7 +1906,7 @@ LCMapStringW(
     if (!mbcsDest.SetCapacity(nRequired))
         return 0;
 
-    nRequired = ::LCMapStringA(Locale, dwMapFlags,
+    nRequired = ::LCMapStringA(Locale, dwMapFlags, 
         mbcsString, mbcsString.Length(), mbcsDest, mbcsDest.BufferSize());
     if (nRequired == 0)
         return 0;
@@ -1949,12 +1923,12 @@ LCMapStringW(
     return ::MultiByteToWideChar(CP_ACP, 0, mbcsDest, nRequired, lpDestStr, cchDest);
 }
 
-HMODULE WINAPI
-LoadLibraryExW(
+
+OCOW_DEF(HMODULE, LoadLibraryExW,(
     IN LPCWSTR lpLibFileName,
     IN HANDLE hFile,
     IN DWORD dwFlags
-    )
+    ))
 {
     CMbcsBuffer mbcsLibFileName;
     if (!mbcsLibFileName.FromUnicode(lpLibFileName))
@@ -1963,10 +1937,10 @@ LoadLibraryExW(
     return ::LoadLibraryExA(mbcsLibFileName, hFile, dwFlags);
 }
 
-HMODULE WINAPI
-LoadLibraryW(
+
+OCOW_DEF(HMODULE, LoadLibraryW,(
     IN LPCWSTR lpLibFileName
-    )
+    ))
 {
     CMbcsBuffer mbcsLibFileName;
     if (!mbcsLibFileName.FromUnicode(lpLibFileName))
@@ -1975,11 +1949,11 @@ LoadLibraryW(
     return ::LoadLibraryA(mbcsLibFileName);
 }
 
-BOOL WINAPI
-MoveFileW(
+
+OCOW_DEF(BOOL, MoveFileW,(
     IN LPCWSTR lpExistingFileName,
     IN LPCWSTR lpNewFileName
-    )
+    ))
 {
     CMbcsBuffer mbcsExistingFileName;
     if (!mbcsExistingFileName.FromUnicode(lpExistingFileName))
@@ -1993,7 +1967,7 @@ MoveFileW(
 }
 
 //TODO: MSLU adds support for CP_UTF7 and CP_UTF8 to Windows 95
-extern "C" int WINAPI
+int WINAPI
 OCOW_MultiByteToWideChar(
     IN UINT     CodePage,
     IN DWORD    dwFlags,
@@ -2003,16 +1977,16 @@ OCOW_MultiByteToWideChar(
     IN int      cchWideChar
     )
 {
-    return ::MultiByteToWideChar(CodePage, dwFlags,
+    return ::MultiByteToWideChar(CodePage, dwFlags, 
         lpMultiByteStr, cbMultiByte, lpWideCharStr, cchWideChar);
 }
 
-HANDLE WINAPI
-OpenEventW(
+
+OCOW_DEF(HANDLE, OpenEventW,(
     IN DWORD dwDesiredAccess,
     IN BOOL bInheritHandle,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -2021,12 +1995,12 @@ OpenEventW(
     return ::OpenEventA(dwDesiredAccess, bInheritHandle, mbcsName);
 }
 
-HANDLE WINAPI
-OpenFileMappingW(
+
+OCOW_DEF(HANDLE, OpenFileMappingW,(
     IN DWORD dwDesiredAccess,
     IN BOOL bInheritHandle,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -2035,12 +2009,12 @@ OpenFileMappingW(
     return ::OpenFileMappingA(dwDesiredAccess, bInheritHandle, mbcsName);
 }
 
-HANDLE WINAPI
-OpenMutexW(
+
+OCOW_DEF(HANDLE, OpenMutexW,(
     IN DWORD dwDesiredAccess,
     IN BOOL bInheritHandle,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -2049,12 +2023,12 @@ OpenMutexW(
     return ::OpenMutexA(dwDesiredAccess, bInheritHandle, mbcsName);
 }
 
-HANDLE WINAPI
-OpenSemaphoreW(
+
+OCOW_DEF(HANDLE, OpenSemaphoreW,(
     IN DWORD dwDesiredAccess,
     IN BOOL bInheritHandle,
     IN LPCWSTR lpName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -2069,15 +2043,16 @@ typedef HANDLE (WINAPI *fpOpenWaitableTimerA)(
     IN LPCSTR lpTimerName
     );
 
-HANDLE WINAPI
-OpenWaitableTimerW(
+
+static fpOpenWaitableTimerA pOpenWaitableTimerA; //move out to emit cxa_guard_* for libstdc++ dependency
+OCOW_DEF(HANDLE, OpenWaitableTimerW,(
     IN DWORD dwDesiredAccess,
     IN BOOL bInheritHandle,
     IN LPCWSTR lpTimerName
-    )
+    ))
 {
-    static fpOpenWaitableTimerA pOpenWaitableTimerA =
-        (fpOpenWaitableTimerA) ::GetProcAddress(
+    if(!pOpenWaitableTimerA)
+        pOpenWaitableTimerA = (fpOpenWaitableTimerA) ::GetProcAddress(
             ::GetModuleHandleA("kernel32.dll"), "OpenWaitableTimerA");
     if (!pOpenWaitableTimerA) {
         SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
@@ -2091,15 +2066,15 @@ OpenWaitableTimerW(
     return pOpenWaitableTimerA(dwDesiredAccess, bInheritHandle, mbcsTimerName);
 }
 
-VOID WINAPI
-OutputDebugStringW(
+
+OCOW_DEF(VOID, OutputDebugStringW,(
     IN LPCWSTR lpOutputString
-    )
+    ))
 {
     CMbcsBuffer mbcsOutputString;
     if (!mbcsOutputString.FromUnicode(lpOutputString))
         return;
-
+    
     ::OutputDebugStringA(mbcsOutputString);
 }
 
@@ -2110,10 +2085,10 @@ OutputDebugStringW(
 // ReadConsoleOutputW
 // ReadConsoleW
 
-BOOL WINAPI
-RemoveDirectoryW(
+
+OCOW_DEF(BOOL, RemoveDirectoryW,(
     IN LPCWSTR lpPathName
-    )
+    ))
 {
     CMbcsBuffer mbcsPathName;
     if (!mbcsPathName.FromUnicode(lpPathName))
@@ -2126,10 +2101,10 @@ RemoveDirectoryW(
 // SearchPathW
 // SetCalendarInfoW
 
-BOOL WINAPI
-SetComputerNameW(
+
+OCOW_DEF(BOOL, SetComputerNameW,(
     IN LPCWSTR lpComputerName
-    )
+    ))
 {
     // ensure that the computer name is valid as per NT guidelines,
     // we don't coerce the characters here
@@ -2143,7 +2118,7 @@ SetComputerNameW(
         switch (c) {
             case L'!': case L'@': case L'#': case L'$': case L'%': case L'^':
             case L'&': case L')': case L'(': case L'.': case L'-': case L'_':
-            case L'{': case L'}': case L'~': case L'\'':
+            case L'{': case L'}': case L'~': case L'\'': 
                 break;
             default:
                 SetLastError(ERROR_INVALID_PARAMETER);
@@ -2158,10 +2133,10 @@ SetComputerNameW(
     return ::SetComputerNameA(mbcsComputerName);
 }
 
-BOOL WINAPI
-SetConsoleTitleW(
+
+OCOW_DEF(BOOL, SetConsoleTitleW,(
     IN LPCWSTR lpConsoleTitle
-    )
+    ))
 {
     CMbcsBuffer mbcsConsoleTitle;
     if (!mbcsConsoleTitle.FromUnicode(lpConsoleTitle))
@@ -2170,10 +2145,10 @@ SetConsoleTitleW(
     return ::SetConsoleTitleA(mbcsConsoleTitle);
 }
 
-BOOL WINAPI
-SetCurrentDirectoryW(
+
+OCOW_DEF(BOOL, SetCurrentDirectoryW,(
     IN LPCWSTR lpPathName
-    )
+    ))
 {
     CMbcsBuffer mbcsPathName;
     if (!mbcsPathName.FromUnicode(lpPathName))
@@ -2184,11 +2159,11 @@ SetCurrentDirectoryW(
 
 // SetDefaultCommConfigW
 
-BOOL WINAPI
-SetEnvironmentVariableW(
+
+OCOW_DEF(BOOL, SetEnvironmentVariableW,(
     IN LPCWSTR lpName,
     IN LPCWSTR lpValue
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.FromUnicode(lpName))
@@ -2201,11 +2176,11 @@ SetEnvironmentVariableW(
     return ::SetEnvironmentVariableA(mbcsName, mbcsValue);
 }
 
-BOOL WINAPI
-SetFileAttributesW(
+
+OCOW_DEF(BOOL, SetFileAttributesW,(
     IN LPCWSTR lpFileName,
     IN DWORD dwFileAttributes
-    )
+    ))
 {
     CMbcsBuffer mbcsFileName;
     if (!mbcsFileName.FromUnicode(lpFileName))
@@ -2216,11 +2191,11 @@ SetFileAttributesW(
 
 // SetLocaleInfoW
 
-BOOL WINAPI
-SetVolumeLabelW(
+
+OCOW_DEF(BOOL, SetVolumeLabelW,(
     IN LPCWSTR lpRootPathName,
     IN LPCWSTR lpVolumeName
-    )
+    ))
 {
     CMbcsBuffer mbcsRootPathName;
     if (!mbcsRootPathName.FromUnicode(lpRootPathName))
@@ -2238,7 +2213,7 @@ SetVolumeLabelW(
 // WaitNamedPipeW
 
 //TODO: MSLU adds support for CP_UTF7 and CP_UTF8 to Windows 95
-extern "C" int WINAPI
+int WINAPI
 OCOW_WideCharToMultiByte(
     IN UINT     CodePage,
     IN DWORD    dwFlags,
@@ -2263,11 +2238,11 @@ OCOW_WideCharToMultiByte(
 // WriteProfileSectionW
 // WriteProfileStringW
 
-LPWSTR WINAPI
-lstrcatW(
+
+OCOW_DEF(LPWSTR, lstrcatW,(
     IN OUT LPWSTR lpString1,
     IN LPCWSTR lpString2
-    )
+    ))
 {
     if (!lpString1 || !lpString2)
         return NULL;
@@ -2275,7 +2250,7 @@ lstrcatW(
         return lpString1;
 
     LPWSTR lpTemp = lpString1;
-    while (*lpTemp)
+    while (*lpTemp) 
         ++lpTemp;
     while (*lpString2)
         *lpTemp++ = *lpString2++;
@@ -2286,13 +2261,10 @@ lstrcatW(
 
 // lstrcmpW
 // lstrcmpiW
-
-LPWSTR
-WINAPI
-lstrcpyW(
+OCOW_DEF(LPWSTR, lstrcpyW,(
     OUT LPWSTR lpString1,
     IN LPCWSTR lpString2
-    )
+    ))
 {
     if (!lpString1 || !lpString2)
         return NULL;
@@ -2305,12 +2277,12 @@ lstrcpyW(
     return lpString1;
 }
 
-LPWSTR WINAPI
-lstrcpynW(
+
+OCOW_DEF(LPWSTR, lstrcpynW,(
     OUT LPWSTR lpString1,
     IN LPCWSTR lpString2,
     IN int iMaxLength
-    )
+    ))
 {
     if (!lpString1 || !lpString2)
         return NULL;
@@ -2325,7 +2297,7 @@ lstrcpynW(
     return lpString1;
 }
 
-extern "C" int WINAPI
+int WINAPI
 OCOW_lstrlenW(
     IN LPCWSTR lpString
     )
@@ -2335,26 +2307,4 @@ OCOW_lstrlenW(
         ++len;
     return len;
 }
-
-extern "C" BOOL WINAPI OCOW_GetVersionExW(LPOSVERSIONINFOW lpVersionInformation)
-{
-    OSVERSIONINFOA osvi;
-
-    if (lpVersionInformation->dwOSVersionInfoSize >= sizeof(OSVERSIONINFOW))
-    {
-        memset(&osvi, 0, sizeof(osvi));
-        osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
-        if (!GetVersionExA(&osvi))
-            return FALSE;
-
-        memcpy(lpVersionInformation, &osvi, sizeof(osvi));
-        ::MultiByteToWideChar(CP_ACP, 0, osvi.szCSDVersion, -1, lpVersionInformation->szCSDVersion,
-                              sizeof(lpVersionInformation->szCSDVersion));
-        return TRUE;
-    }
-    else
-    {
-        SetLastError(ERROR_INSUFFICIENT_BUFFER);
-        return FALSE;
-    }
-}
+}//EXTERN_C 

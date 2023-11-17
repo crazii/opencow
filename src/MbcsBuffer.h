@@ -39,6 +39,27 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#if !defined(OCOW_API)
+#define OCOW_API WINAPI
+#endif
+
+//for static linking (hack. they are read only symbols)
+#if defined(STATIC_OPENCOW)
+
+//a faked "imported entry" is added as if the imported symbol is a function pointer
+//naked function _imp__xxx() {
+//raw addr of next (as a 'pointer')
+//next: jmp xxx()
+//}
+#   define OCOW_DEF(RetT, x, ...) RetT OCOW_API x __VA_ARGS__ asm("_ocow_"#x); \
+                                   RetT OCOW_API __attribute__((naked)) __MINGW_IMP_SYMBOL(x) __VA_ARGS__ {asm(".long 1f \n\t 1: jmp _ocow_"#x);} \
+                                   RetT OCOW_API x __VA_ARGS__
+#else
+
+#   define OCOW_DEF(RetT, x, ...) RetT OCOW_API x __VA_ARGS__
+
+#endif
+
 #define ARRAY_SIZE(x)   (sizeof(x)/sizeof((x)[0]))
 
 

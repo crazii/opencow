@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _USER32_
 
@@ -41,24 +41,31 @@
 #include <crtdbg.h>
 
 #include "MbcsBuffer.h"
-#include "unicode.h"
+
 
 // ----------------------------------------------------------------------------
 // API
-
+EXTERN_C {
 // AppendMenuW
 // BroadcastSystemMessageW
 // CallMsgFilterW
 // CallWindowProcA
 
-LRESULT WINAPI
-CallWindowProcW(
-    IN WNDPROC lpPrevWndFunc,
+OCOW_DEF(BOOL, AppendMenuW, (HMENU hMenu,UINT uFlags,UINT_PTR uIDNewItem,LPCWSTR lpNewItem))
+{
+    CMbcsBuffer buff;
+    if(!buff.FromUnicode(lpNewItem))
+        return FALSE;
+    return ::AppendMenuA(hMenu, uFlags, uIDNewItem, buff);
+}
+
+OCOW_DEF(LRESULT, CallWindowProcW,
+    (IN WNDPROC lpPrevWndFunc,
     IN HWND hWnd,
     IN UINT Msg,
     IN WPARAM wParam,
     IN LPARAM lParam
-    )
+    ))
 {
     //TODO: is this sufficient?
     return ::CallWindowProcA(lpPrevWndFunc, hWnd, Msg, wParam, lParam);
@@ -68,36 +75,43 @@ CallWindowProcW(
 // ChangeDisplaySettingsW
 // ChangeMenuW
 
-DWORD
-WINAPI
-CharLowerBuffW(
-    IN OUT LPWSTR lpsz,
+OCOW_DEF(DWORD, CharLowerBuffW,
+    (IN OUT LPWSTR lpsz,
     IN DWORD cchLength
-    )
+    ))
 {
-    DWORD ret = cchLength;
-    if (!lpsz)
-        return 0; /* YES */
-    for (; cchLength; cchLength--, lpsz++)
-        *lpsz = tolowerW(*lpsz);
-    return ret;
+    wchar_t c;
+    for (DWORD dwCount = 0; dwCount < cchLength; ++dwCount) {
+        c = lpsz[dwCount];
+        if (c >= 'A' && c <= 'Z')
+            lpsz[dwCount] = (unsigned short) ((c - 'A') + 'a');
+    }
+    return cchLength;
 }
 
-LPWSTR
-WINAPI
-CharLowerW(
-    IN OUT LPWSTR lpsz
+OCOW_DEF(LPWSTR, CharLowerW,
+    (IN OUT LPWSTR lpsz)
     )
 {
-    if (HIWORD(lpsz))
-        return strlwrW(lpsz);
-    else
-        return (LPWSTR)((UINT_PTR) tolowerW(LOWORD(lpsz)));
+    if (HIWORD(lpsz) == 0) {
+        wchar_t c = LOWORD(lpsz);
+        if (c >= 'A' && c <= 'Z')
+            c = (unsigned short) ((c - 'A') + 'a');
+        return (LPWSTR) c;
+    }
+    else {
+        wchar_t c;
+        for (wchar_t *pTemp = lpsz; *pTemp; ++pTemp) {
+            c = *pTemp;
+            if (c >= 'A' && c <= 'Z')
+                *pTemp = (unsigned short) ((c - 'A') + 'a');
+        }
+        return lpsz;
+    }
 }
 
-LPWSTR WINAPI
-CharNextW(
-    IN LPCWSTR lpsz
+OCOW_DEF(LPWSTR, CharNextW,
+    (IN LPCWSTR lpsz)
     )
 {
     if (*lpsz)
@@ -105,11 +119,10 @@ CharNextW(
     return const_cast<LPWSTR>(lpsz);
 }
 
-LPWSTR WINAPI
-CharPrevW(
-    IN LPCWSTR lpszStart,
+OCOW_DEF(LPWSTR, CharPrevW,
+    (IN LPCWSTR lpszStart,
     IN LPCWSTR lpszCurrent
-    )
+    ))
 {
     if (lpszStart < lpszCurrent)
         --lpszCurrent;
@@ -119,30 +132,39 @@ CharPrevW(
 // CharToOemBuffW
 // CharToOemW
 
-DWORD WINAPI
-CharUpperBuffW(
-    IN OUT LPWSTR lpsz,
+OCOW_DEF(DWORD, CharUpperBuffW,
+    (IN OUT LPWSTR lpsz,
     IN DWORD cchLength
-    )
+    ))
 {
-    DWORD ret = cchLength;
-    if (!lpsz)
-        return 0; /* YES */
-    for (; cchLength; cchLength--, lpsz++)
-        *lpsz = toupperW(*lpsz);
-    return ret;
+    wchar_t c;
+    for (DWORD dwCount = 0; dwCount < cchLength; ++dwCount) {
+        c = lpsz[dwCount];
+        if (c >= 'a' && c <= 'z')
+            lpsz[dwCount] = (unsigned short) ((c - 'a') + 'Z');
+    }
+    return cchLength;
 }
 
-LPWSTR
-WINAPI
-CharUpperW(
-    IN OUT LPWSTR lpsz
+OCOW_DEF(LPWSTR, CharUpperW,
+    (IN OUT LPWSTR lpsz)
     )
 {
-    if (HIWORD(lpsz))
-        return struprW(lpsz);
-    else
-        return (LPWSTR)((UINT_PTR) toupperW(LOWORD(lpsz)));
+    if (HIWORD(lpsz) == 0) {
+        wchar_t c = LOWORD(lpsz);
+        if (c >= 'a' && c <= 'z')
+            c = (unsigned short) ((c - 'a') + 'A');
+        return (LPWSTR) c;
+    }
+    else {
+        wchar_t c;
+        for (wchar_t *pTemp = lpsz; *pTemp; ++pTemp) {
+            c = *pTemp;
+            if (c >= 'a' && c <= 'z')
+                *pTemp = (unsigned short) ((c - 'a') + 'A');
+        }
+        return lpsz;
+    }
 }
 
 // CopyAcceleratorTableW
@@ -150,10 +172,9 @@ CharUpperW(
 // CreateDialogIndirectParamW
 // CreateDialogParamW
 // CreateMDIWindowW
-
-HWND WINAPI
-CreateWindowExW(
-    IN DWORD dwExStyle,
+ 
+OCOW_DEF(HWND, CreateWindowExW,
+    (IN DWORD dwExStyle,
     IN LPCWSTR lpClassName,
     IN LPCWSTR lpWindowName,
     IN DWORD dwStyle,
@@ -165,7 +186,7 @@ CreateWindowExW(
     IN HMENU hMenu,
     IN HINSTANCE hInstance,
     IN LPVOID lpParam
-    )
+    ))
 {
     // class name is only a string if the HIWORD is not 0
     CMbcsBuffer mbcsClassName;
@@ -194,13 +215,12 @@ CreateWindowExW(
 // DefFrameProcW
 // DefMDIChildProcW
 
-LRESULT WINAPI
-DefWindowProcW(
-    IN HWND hWnd,
+OCOW_DEF(LRESULT, DefWindowProcW,
+    (IN HWND hWnd,
     IN UINT Msg,
     IN WPARAM wParam,
     IN LPARAM lParam
-    )
+    ))
 {
     //TODO: is this sufficient?
     return ::DefWindowProcA(hWnd, Msg, wParam, lParam);
@@ -209,10 +229,9 @@ DefWindowProcW(
 // DialogBoxIndirectParamW
 // DialogBoxParamW
 
-LRESULT WINAPI
-DispatchMessageW(
-    IN CONST MSG *lpMsg
-    )
+OCOW_DEF(LRESULT, DispatchMessageW,
+    (IN CONST MSG *lpMsg
+    ))
 {
     //TODO: is this sufficient?
     return ::DispatchMessageA(lpMsg);
@@ -241,12 +260,11 @@ DispatchMessageW(
 // GetClassInfoW
 // GetClassLongW
 
-int WINAPI
-GetClassNameW(
-    IN HWND hWnd,
+OCOW_DEF(int, GetClassNameW,
+    (IN HWND hWnd,
     OUT LPWSTR lpClassName,
     IN int nMaxCount
-    )
+    ))
 {
     CMbcsBuffer mbcsClassName;
     if (!mbcsClassName.SetCapacity(nMaxCount*2))
@@ -269,12 +287,11 @@ GetClassNameW(
 
 // GetClipboardData
 
-int WINAPI
-GetClipboardFormatNameW(
-    IN UINT format,
+OCOW_DEF(int, GetClipboardFormatNameW,
+    (IN UINT format,
     OUT LPWSTR lpszFormatName,
     IN int cchMaxCount
-    )
+    ))
 {
     CMbcsBuffer mbcsFormatName;
     if (!mbcsFormatName.SetCapacity(cchMaxCount))
@@ -301,13 +318,12 @@ GetClipboardFormatNameW(
 // GetMenuItemInfoW
 // GetMenuStringW
 
-BOOL WINAPI
-GetMessageW(
-    OUT LPMSG lpMsg,
+OCOW_DEF(BOOL, GetMessageW,
+    (OUT LPMSG lpMsg,
     IN HWND hWnd,
     IN UINT wMsgFilterMin,
     IN UINT wMsgFilterMax
-    )
+    ))
 {
     //TODO: is this sufficient?
     return ::GetMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
@@ -345,14 +361,51 @@ GetMessageW(
 // MapVirtualKeyExW
 // MapVirtualKeyW
 
-int WINAPI
-MessageBoxExW(
-    IN HWND hWnd,
+OCOW_DEF(BOOL, InsertMenuItemW, (HMENU hMenu,UINT item,BOOL fByPosition,LPCMENUITEMINFOW lpmi))
+{
+    if(!lpmi) return FALSE;
+    
+    CMbcsBuffer buff;
+
+    MENUITEMINFOA mbsmi = 
+    {
+        lpmi->cbSize,
+        lpmi->fMask,
+        lpmi->fType,
+        lpmi->fState,
+        lpmi->wID,
+        lpmi->hSubMenu,
+        lpmi->hbmpChecked,
+        lpmi->hbmpUnchecked,
+        lpmi->dwItemData,
+        (LPSTR)lpmi->dwTypeData,
+        lpmi->cch,
+        lpmi->hbmpItem,
+    };
+    if((lpmi->fMask&MIIM_STRING))
+    {
+        if(!buff.FromUnicode(lpmi->dwTypeData))
+            return FALSE;
+        mbsmi.dwTypeData = (LPSTR)buff;
+    }
+    return ::InsertMenuItemA(hMenu,item,fByPosition,&mbsmi);
+}
+
+OCOW_DEF(BOOL, InsertMenuW, (HMENU hMenu,UINT uPosition,UINT uFlags,UINT_PTR uIDNewItem,LPCWSTR lpNewItem))
+{
+    CMbcsBuffer buff;
+    if(!buff.FromUnicode(lpNewItem))
+        return FALSE;
+    return ::InsertMenuA(hMenu,uPosition,uFlags,uIDNewItem,buff);
+}
+
+OCOW_DEF(int, MessageBoxExW,
+    (IN HWND hWnd,
     IN LPCWSTR lpText,
     IN LPCWSTR lpCaption,
     IN UINT uType,
     IN WORD wLanguageId
-    )
+    ))
 {
     CMbcsBuffer mbcsText;
     if (!mbcsText.FromUnicode(lpText))
@@ -367,13 +420,12 @@ MessageBoxExW(
 
 // MessageBoxIndirectW
 
-int WINAPI
-MessageBoxW(
-    IN HWND hWnd,
+OCOW_DEF(int, MessageBoxW,
+    (IN HWND hWnd,
     IN LPCWSTR lpText,
     IN LPCWSTR lpCaption,
     IN UINT uType
-    )
+    ))
 {
     CMbcsBuffer mbcsText;
     if (!mbcsText.FromUnicode(lpText))
@@ -390,26 +442,42 @@ MessageBoxW(
 // OemToCharBuffW
 // OemToCharW
 
-BOOL WINAPI
-PeekMessageW(
-    OUT LPMSG lpMsg,
+OCOW_DEF(BOOL, PeekMessageW,
+    (OUT LPMSG lpMsg,
     IN HWND hWnd,
     IN UINT wMsgFilterMin,
     IN UINT wMsgFilterMax,
     IN UINT wRemoveMsg
-    )
+    ))
 {
     //TODO: is this sufficient?
     return ::PeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
 }
 
-// PostMessageW
-// PostThreadMessageW
+OCOW_DEF(BOOL, PostMessageW,
+  (IN HWND   hWnd,
+  IN UINT   Msg,
+  IN WPARAM wParam,
+  IN LPARAM lParam
+))
+{
+    return ::PostMessageA(hWnd, Msg, wParam, lParam);
+}
+
+OCOW_DEF(BOOL, PostThreadMessageW,
+  (IN DWORD idThread,
+  IN UINT   Msg,
+  IN WPARAM wParam,
+  IN LPARAM lParam
+))
+{
+    return ::PostThreadMessageA(idThread, Msg, wParam, lParam);
+}
+
 // RegisterClassExW
 
-ATOM WINAPI
-RegisterClassW(
-    IN CONST WNDCLASSW *lpWndClass
+OCOW_DEF(ATOM, RegisterClassW,
+    (IN CONST WNDCLASSW *lpWndClass)
     )
 {
     WNDCLASSA wndClassA;
@@ -443,9 +511,8 @@ RegisterClassW(
     return ::RegisterClassA(&wndClassA);
 }
 
-UINT WINAPI
-RegisterClipboardFormatW(
-    IN LPCWSTR lpszFormat
+OCOW_DEF(UINT, RegisterClipboardFormatW,
+    (IN LPCWSTR lpszFormat)
     )
 {
     CMbcsBuffer mbcsFormat;
@@ -462,32 +529,31 @@ RegisterClipboardFormatW(
 // SendDlgItemMessageW
 // SendMessageCallbackW
 
-LRESULT WINAPI
-SendMessageTimeoutW(
-    IN HWND hWnd,
+OCOW_DEF(LRESULT, SendMessageTimeoutW,
+    (IN HWND hWnd,
     IN UINT Msg,
     IN WPARAM wParam,
     IN LPARAM lParam,
     IN UINT fuFlags,
     IN UINT uTimeout,
     OUT PDWORD_PTR lpdwResult
-    )
+    ))
 {
     // only the following message types have been verified, before using
     // other message types ensure that they are implemented correctly
     _ASSERTE(
-        Msg == WM_SETTEXT ||
-        Msg == WM_SETICON ||
+        Msg == WM_SETTEXT || 
+        Msg == WM_SETICON || 
         Msg == WM_SETFONT ||
         Msg == WM_SETTINGCHANGE );
 
     if (Msg == WM_SETTEXT) {
         CMbcsBuffer mbcsString;
         if (!mbcsString.FromUnicode((LPWSTR)lParam))
-            return ::SendMessageTimeoutA(hWnd, WM_SETTEXT, 0, 0,
+            return ::SendMessageTimeoutA(hWnd, WM_SETTEXT, 0, 0, 
                 fuFlags, uTimeout, lpdwResult); // error value depends on hWnd
 
-        return ::SendMessageTimeoutA(hWnd, WM_SETTEXT, wParam, (LPARAM) mbcsString.get(),
+        return ::SendMessageTimeoutA(hWnd, WM_SETTEXT, wParam, (LPARAM) mbcsString.get(), 
             fuFlags, uTimeout, lpdwResult);
     }
 
@@ -495,27 +561,26 @@ SendMessageTimeoutW(
         CMbcsBuffer mbcsString;
         if (!mbcsString.FromUnicode((LPWSTR)lParam))
             mbcsString.SetNull();   // don't set the string
-        return ::SendMessageTimeoutA(hWnd, WM_SETTINGCHANGE, wParam, (LPARAM) mbcsString.get(),
+        return ::SendMessageTimeoutA(hWnd, WM_SETTINGCHANGE, wParam, (LPARAM) mbcsString.get(), 
             fuFlags, uTimeout, lpdwResult);
     }
 
-    return ::SendMessageTimeoutA(hWnd, Msg, wParam, lParam,
+    return ::SendMessageTimeoutA(hWnd, Msg, wParam, lParam, 
         fuFlags, uTimeout, lpdwResult);
 }
 
-LRESULT WINAPI
-SendMessageW(
-    IN HWND hWnd,
+OCOW_DEF(LRESULT, SendMessageW,
+    (IN HWND hWnd,
     IN UINT Msg,
     IN WPARAM wParam,
     IN LPARAM lParam
-    )
+    ))
 {
     // only the following message types have been verified, before using
     // other message types ensure that they are implemented correctly
     _ASSERTE(
-        Msg == WM_SETTEXT ||
-        Msg == WM_SETICON ||
+        Msg == WM_SETTEXT || 
+        Msg == WM_SETICON || 
         Msg == WM_SETFONT ||
         Msg == WM_SETTINGCHANGE );
 
@@ -552,11 +617,10 @@ SendMessageW(
 // TabbedTextOutW
 // TranslateAcceleratorW
 
-BOOL WINAPI
-UnregisterClassW(
-    IN LPCWSTR lpClassName,
+OCOW_DEF(BOOL, UnregisterClassW,
+    (IN LPCWSTR lpClassName,
     IN HINSTANCE hInstance
-    )
+    ))
 {
     // class name is only a string if the HIWORD is not 0
     CMbcsBuffer mbcsClassName;
@@ -575,3 +639,4 @@ UnregisterClassW(
 // WinHelpW
 // wsprintfW
 // wvsprintfW
+}//EXTERN_C 

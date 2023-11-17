@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _CRTIMP
 
@@ -47,16 +47,18 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#define OCOW_API __cdecl
 #include "MbcsBuffer.h"
+
 
 // ----------------------------------------------------------------------------
 // API
+EXTERN_C {
 
-int __cdecl
-_wrename(
-    const wchar_t * oldname,
+OCOW_DEF(int, _wrename,
+    (const wchar_t * oldname, 
     const wchar_t * newname
-    )
+    ))
 {
     CMbcsBuffer mbcsOldname;
     if (!mbcsOldname.FromUnicode(oldname)) {
@@ -73,10 +75,9 @@ _wrename(
     return ::rename(mbcsOldname, mbcsNewname);
 }
 
-int __cdecl
-_wremove(
-    const wchar_t * path
-    )
+OCOW_DEF(int, _wremove,
+    (const wchar_t * path
+    ))
 {
     CMbcsBuffer mbcsPath;
     if (!mbcsPath.FromUnicode(path)) {
@@ -87,12 +88,11 @@ _wremove(
     return ::remove(mbcsPath);
 }
 
-int __cdecl
-_wopen(
-    const wchar_t * filename,
-    int oflag,
+OCOW_DEF(int, _wopen,
+    (const wchar_t * filename, 
+    int oflag, 
     ... /* [int pmode] */
-    )
+    ))
 {
     va_list marker;
     int pmode;
@@ -110,25 +110,22 @@ _wopen(
     return ::_open(mbcsFilename, oflag, pmode);
 }
 
-int __cdecl
-_waccess(
-    const wchar_t * path,
+OCOW_DEF(int, _waccess,
+    (const wchar_t * path, 
     int mode
-    )
+    ))
 {
     CMbcsBuffer mbcsPath;
     if (!mbcsPath.FromUnicode(path)) {
         errno = ENOENT;
         return -1;
     }
-
     return ::_access(mbcsPath, mode);
 }
 
-int __cdecl
-_wchdir(
-    const wchar_t * dirname
-    )
+OCOW_DEF(int, _wchdir,
+    (const wchar_t * dirname
+    ))
 {
     CMbcsBuffer mbcsDirname;
     if (!mbcsDirname.FromUnicode(dirname)) {
@@ -139,11 +136,10 @@ _wchdir(
     return ::_chdir(mbcsDirname);
 }
 
-wchar_t * __cdecl
-_wgetcwd(
-    wchar_t * buffer,
+OCOW_DEF(wchar_t *, _wgetcwd,
+    (wchar_t * buffer, 
     int maxlen
-    )
+    ))
 {
     CMbcsBuffer mbcsBuffer;
     if (!::_getcwd(mbcsBuffer, mbcsBuffer.BufferSize()))
@@ -170,12 +166,11 @@ _wgetcwd(
     return buffer;
 }
 
-wchar_t * __cdecl
-_wgetdcwd(
-   int drive,
+OCOW_DEF(wchar_t *, _wgetdcwd,
+   (int drive,
    wchar_t *buffer,
    int maxlen
-   )
+   ))
 {
     char * localBuffer = NULL;
     char stackBuffer[MAX_PATH];
@@ -189,7 +184,7 @@ _wgetdcwd(
         localBuffer = stackBuffer;
 
     // get the current drive path, this will allocate the buffer if
-    // localBuffer is still set to NULL. If there is an error we can
+    // localBuffer is still set to NULL. If there is an error we can 
     // just return because we haven't allocated anything and the errno
     // will be set appropriately.
     cwd = ::_getdcwd(drive, localBuffer, localBuffer ? MAX_PATH : 0);
@@ -231,10 +226,9 @@ _wgetdcwd(
     return outputBuffer;
 }
 
-int __cdecl
-_wmkdir(
-    const wchar_t * dirname
-    )
+OCOW_DEF(int, _wmkdir,
+    (const wchar_t * dirname
+    ))
 {
     CMbcsBuffer mbcsDirname;
     if (!mbcsDirname.FromUnicode(dirname)) {
@@ -245,10 +239,9 @@ _wmkdir(
     return ::_mkdir(mbcsDirname);
 }
 
-int __cdecl
-_wrmdir(
-    const wchar_t * dirname
-    )
+OCOW_DEF(int, _wrmdir,
+    (const wchar_t * dirname
+    ))
 {
     CMbcsBuffer mbcsDirname;
     if (!mbcsDirname.FromUnicode(dirname)) {
@@ -259,11 +252,10 @@ _wrmdir(
     return ::_rmdir(mbcsDirname);
 }
 
-int __cdecl
-_wstat(
-    const wchar_t * path,
+OCOW_DEF(int, _wstat,
+    (const wchar_t * path, 
     struct _stat * buffer
-    )
+    ))
 {
     CMbcsBuffer mbcsPath;
     if (!mbcsPath.FromUnicode(path)) {
@@ -274,11 +266,10 @@ _wstat(
     return ::_stat(mbcsPath, buffer);
 }
 
-int __cdecl
-_wstati64(
-    const wchar_t * path,
+OCOW_DEF(int, _wstati64,
+    (const wchar_t * path, 
     struct _stati64 * buffer
-    )
+    ))
 {
     CMbcsBuffer mbcsPath;
     if (!mbcsPath.FromUnicode(path)) {
@@ -289,3 +280,4 @@ _wstati64(
     return ::_stati64(mbcsPath, buffer);
 }
 
+}//EXTERN_C 

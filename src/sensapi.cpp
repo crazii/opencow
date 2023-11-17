@@ -43,19 +43,19 @@
 
 extern HMODULE g_hSensapi;
 
+
 // ----------------------------------------------------------------------------
 // API
-
+EXTERN_C {
 typedef BOOL (APIENTRY *fpIsDestinationReachableA)(
     LPCSTR lpszDestination,
     LPQOCINFO lpQOCInfo
     );
 
-BOOL APIENTRY
-IsDestinationReachableW(
-    LPCWSTR lpszDestination,
+OCOW_DEF(BOOL, IsDestinationReachableW,
+    (LPCWSTR lpszDestination,
     LPQOCINFO lpQOCInfo
-    )
+    ))
 {
     static fpIsDestinationReachableA pIsDestinationReachableA = 0;
     if (!pIsDestinationReachableA) {
@@ -64,9 +64,9 @@ IsDestinationReachableW(
             if (!g_hSensapi) {
                 SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
                 return FALSE;
-            }
+            }                
         }
-        pIsDestinationReachableA = (fpIsDestinationReachableA)
+        pIsDestinationReachableA = (fpIsDestinationReachableA) 
             ::GetProcAddress(g_hSensapi, "IsDestinationReachableA");
         if (!pIsDestinationReachableA) {
             SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
@@ -80,3 +80,4 @@ IsDestinationReachableW(
 
     return pIsDestinationReachableA(mbcsDestination, lpQOCInfo);
 }
+}//EXTERN_C 

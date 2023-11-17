@@ -63,24 +63,25 @@ extern HMODULE g_hOleacc;
         }                                                           \
     }
 
+
 // ----------------------------------------------------------------------------
 // API
 
 typedef HRESULT (STDAPICALLTYPE *fpCreateStdAccessibleProxyA)(
-    HWND hwnd,
-    LPCSTR pClassName,
-    LONG idObject,
-    REFIID riid,
+    HWND hwnd, 
+    LPCSTR pClassName, 
+    LONG idObject, 
+    REFIID riid, 
     void** ppvObject);
 
-EXTERN_C HRESULT STDAPICALLTYPE
-CreateStdAccessibleProxyW(
-    HWND hwnd,
-    LPCWSTR pClassName,
-    LONG idObject,
-    REFIID riid,
+EXTERN_C {
+OCOW_DEF(HRESULT, CreateStdAccessibleProxyW,
+    (HWND hwnd, 
+    LPCWSTR pClassName, 
+    LONG idObject, 
+    REFIID riid, 
     void** ppvObject
-    )
+    ))
 {
     LOAD_FUNCTION(CreateStdAccessibleProxyA, E_NOTIMPL)
 
@@ -92,16 +93,15 @@ CreateStdAccessibleProxyW(
 }
 
 typedef UINT (STDAPICALLTYPE *fpGetRoleTextA)(
-    DWORD lRole,
-    LPSTR lpszRole,
+    DWORD lRole, 
+    LPSTR lpszRole, 
     UINT cchRoleMax);
 
-EXTERN_C UINT STDAPICALLTYPE
-GetRoleTextW(
-    DWORD lRole,
-    LPWSTR lpszRole,
+OCOW_DEF(UINT, GetRoleTextW,
+    (DWORD lRole, 
+    LPWSTR lpszRole, 
     UINT cchRoleMax
-    )
+    ))
 {
     LOAD_FUNCTION(GetRoleTextA, 0)
 
@@ -126,16 +126,15 @@ GetRoleTextW(
 }
 
 typedef UINT (STDAPICALLTYPE *fpGetStateTextA)(
-    DWORD lStateBit,
-    LPSTR lpszState,
+    DWORD lStateBit, 
+    LPSTR lpszState, 
     UINT cchState);
 
-EXTERN_C UINT STDAPICALLTYPE
-GetStateTextW(
-    DWORD lStateBit,
-    LPWSTR lpszState,
+OCOW_DEF(UINT, GetStateTextW,
+    (DWORD lStateBit, 
+    LPWSTR lpszState, 
     UINT cchState
-    )
+    ))
 {
     LOAD_FUNCTION(GetStateTextA, 0)
 
@@ -158,3 +157,4 @@ GetStateTextW(
     ::MultiByteToWideChar(CP_ACP, 0, mbcsState, (int) uiLen + 1, lpszState, cchState);
     return (UINT) (nRequiredLen - 1);
 }
+}//EXTERN_C

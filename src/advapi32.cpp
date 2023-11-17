@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _ADVAPI32_
 
@@ -43,9 +43,10 @@
 
 #include "MbcsBuffer.h"
 
+
 // ----------------------------------------------------------------------------
 // API
-
+EXTERN_C {
 // CryptAcquireContextW
 // CryptEnumProvidersW
 // CryptEnumProviderTypesW
@@ -55,12 +56,8 @@
 // CryptSignHashW
 // CryptVerifySignatureW
 // GetCurrentHwProfileW
-
-BOOL WINAPI
-GetUserNameW(
-    OUT LPWSTR lpBuffer,
-    IN OUT LPDWORD nSize
-    )
+OCOW_DEF(BOOL, GetUserNameW, 
+    (OUT LPWSTR lpBuffer, IN OUT LPDWORD nSize))
 {
     CMbcsBuffer mbcsBuffer;
     DWORD dwBufSize = (DWORD) mbcsBuffer.BufferSize();
@@ -82,13 +79,10 @@ GetUserNameW(
 }
 
 // IsTextUnicode
-
-LONG APIENTRY
-RegConnectRegistryW(
-    IN LPCWSTR lpMachineName,
+OCOW_DEF(LONG, RegConnectRegistryW,
+    (IN LPCWSTR lpMachineName,
     IN HKEY hKey,
-    OUT PHKEY phkResult
-    )
+    OUT PHKEY phkResult))
 {
     CMbcsBuffer mbcsMachineName;
     if (!mbcsMachineName.FromUnicode(lpMachineName))
@@ -97,9 +91,9 @@ RegConnectRegistryW(
     return ::RegConnectRegistryA(mbcsMachineName, hKey, phkResult);
 }
 
-LONG APIENTRY
-RegCreateKeyExW(
-    IN HKEY hKey,
+
+OCOW_DEF(LONG, RegCreateKeyExW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     IN DWORD Reserved,
     IN LPWSTR lpClass,
@@ -107,8 +101,7 @@ RegCreateKeyExW(
     IN REGSAM samDesired,
     IN LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     OUT PHKEY phkResult,
-    OUT LPDWORD lpdwDisposition
-    )
+    OUT LPDWORD lpdwDisposition))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -118,16 +111,15 @@ RegCreateKeyExW(
     if (!mbcsClass.FromUnicode(lpClass))
         return ERROR_NOT_ENOUGH_MEMORY;
 
-    return ::RegCreateKeyExA(hKey, mbcsSubKey, Reserved, mbcsClass, dwOptions,
+    return ::RegCreateKeyExA(hKey, mbcsSubKey, Reserved, mbcsClass, dwOptions, 
         samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
 }
 
-LONG APIENTRY
-RegCreateKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegCreateKeyW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     OUT PHKEY phkResult
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -136,11 +128,10 @@ RegCreateKeyW(
     return ::RegCreateKeyA(hKey, mbcsSubKey, phkResult);
 }
 
-LONG APIENTRY
-RegDeleteKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegDeleteKeyW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -149,11 +140,10 @@ RegDeleteKeyW(
     return ::RegDeleteKeyA(hKey, mbcsSubKey);
 }
 
-LONG APIENTRY
-RegDeleteValueW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegDeleteValueW,
+    (IN HKEY hKey,
     IN LPCWSTR lpValueName
-    )
+    ))
 {
     CMbcsBuffer mbcsValueName;
     if (!mbcsValueName.FromUnicode(lpValueName))
@@ -162,9 +152,8 @@ RegDeleteValueW(
     return ::RegDeleteValueA(hKey, mbcsValueName);
 }
 
-LONG APIENTRY
-RegEnumKeyExW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegEnumKeyExW,
+    (IN HKEY hKey,
     IN DWORD dwIndex,
     OUT LPWSTR lpName,
     IN OUT LPDWORD lpcbName,
@@ -172,7 +161,7 @@ RegEnumKeyExW(
     IN OUT LPWSTR lpClass,
     IN OUT LPDWORD lpcbClass,
     OUT PFILETIME lpftLastWriteTime
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.SetCapacity(*lpcbName))
@@ -205,13 +194,12 @@ RegEnumKeyExW(
     return lResult;
 }
 
-LONG APIENTRY
-RegEnumKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegEnumKeyW,
+    (IN HKEY hKey,
     IN DWORD dwIndex,
     OUT LPWSTR lpName,
     IN DWORD cbName
-    )
+    ))
 {
     CMbcsBuffer mbcsName;
     if (!mbcsName.SetCapacity(cbName))
@@ -225,9 +213,8 @@ RegEnumKeyW(
     return lResult;
 }
 
-LONG APIENTRY
-RegEnumValueW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegEnumValueW,
+    (IN HKEY hKey,
     IN DWORD dwIndex,
     OUT LPWSTR lpValueName,
     IN OUT LPDWORD lpcbValueName,
@@ -235,7 +222,7 @@ RegEnumValueW(
     OUT LPDWORD lpType,
     OUT LPBYTE lpData,
     IN OUT LPDWORD lpcbData
-    )
+    ))
 {
     CMbcsBuffer mbcsValueName;
     if (!mbcsValueName.SetCapacity(*lpcbValueName))
@@ -283,9 +270,9 @@ RegEnumValueW(
 
         // if we have a value > 0 for convert len then we have a string to convert
         if (nConvertLen > 0) {
-            nChars = ::MultiByteToWideChar(CP_ACP, 0, mbcsData, nConvertLen,
+            nChars = ::MultiByteToWideChar(CP_ACP, 0, mbcsData, nConvertLen, 
                 (wchar_t*) lpData, (*lpcbData)/sizeof(wchar_t));
-            *lpcbData = nChars; // include NULL
+            *lpcbData = nChars; // include NULL 
         }
         else {
             ::CopyMemory(lpData, mbcsData.get(), dwDataLen);
@@ -299,12 +286,11 @@ RegEnumValueW(
     return lResult;
 }
 
-LONG APIENTRY
-RegLoadKeyW(
-    IN HKEY    hKey,
+OCOW_DEF(LONG, RegLoadKeyW,
+    (IN HKEY    hKey,
     IN LPCWSTR  lpSubKey,
     IN LPCWSTR  lpFile
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -323,14 +309,13 @@ RegLoadKeyW(
     return ::RegLoadKeyA(hKey, mbcsSubKey, mbcsFile);
 }
 
-LONG APIENTRY
-RegOpenKeyExW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegOpenKeyExW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     IN DWORD ulOptions,
     IN REGSAM samDesired,
     OUT PHKEY phkResult
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -339,12 +324,11 @@ RegOpenKeyExW(
     return ::RegOpenKeyExA(hKey, mbcsSubKey, ulOptions, samDesired, phkResult);
 }
 
-LONG APIENTRY
-RegOpenKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegOpenKeyW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     OUT PHKEY phkResult
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -353,9 +337,8 @@ RegOpenKeyW(
     return ::RegOpenKeyA(hKey, mbcsSubKey, phkResult);
 }
 
-LONG APIENTRY
-RegQueryInfoKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegQueryInfoKeyW,
+    (IN HKEY hKey,
     OUT LPWSTR lpClass,
     IN OUT LPDWORD lpcbClass,
     IN LPDWORD lpReserved,
@@ -367,7 +350,7 @@ RegQueryInfoKeyW(
     OUT LPDWORD lpcbMaxValueLen,
     OUT LPDWORD lpcbSecurityDescriptor,
     OUT PFILETIME lpftLastWriteTime
-    )
+    ))
 {
     CMbcsBuffer mbcsClass;
     if (lpClass && lpcbClass) {
@@ -380,7 +363,7 @@ RegQueryInfoKeyW(
 
     DWORD dwClassSize = mbcsClass.BufferSize();
     LONG lResult = ::RegQueryInfoKeyA(hKey, mbcsClass, mbcsClass ? &dwClassSize : NULL,
-        lpReserved, lpcSubKeys, lpcbMaxSubKeyLen, lpcbMaxClassLen, lpcValues,
+        lpReserved, lpcSubKeys, lpcbMaxSubKeyLen, lpcbMaxClassLen, lpcValues, 
         lpcbMaxValueNameLen, lpcbMaxValueLen, lpcbSecurityDescriptor,
         lpftLastWriteTime);
     if (lResult != ERROR_SUCCESS) {
@@ -399,15 +382,14 @@ RegQueryInfoKeyW(
 
 // RegQueryMultipleValuesW
 
-LONG APIENTRY
-RegQueryValueExW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegQueryValueExW,
+    (IN HKEY hKey,
     IN LPCWSTR lpValueName,
     IN LPDWORD lpReserved,
     OUT LPDWORD lpType,
     IN OUT LPBYTE lpData,
     IN OUT LPDWORD lpcbData
-    )
+    ))
 {
     CMbcsBuffer mbcsValueName;
     if (!mbcsValueName.FromUnicode(lpValueName))
@@ -424,7 +406,7 @@ RegQueryValueExW(
 
     DWORD dwType;
     DWORD dwDataLen = mbcsData.BufferSize();
-    LONG lResult = ::RegQueryValueExA(hKey, mbcsValueName, lpReserved,
+    LONG lResult = ::RegQueryValueExA(hKey, mbcsValueName, lpReserved, 
         &dwType, (LPBYTE) mbcsData.get(), &dwDataLen);
     if (lResult != ERROR_SUCCESS)
         return lResult;
@@ -451,9 +433,9 @@ RegQueryValueExW(
 
         // if we have a value > 0 for convert len then we have a string to convert
         if (nConvertLen > 0) {
-            int nChars = ::MultiByteToWideChar(CP_ACP, 0, mbcsData, nConvertLen,
+            int nChars = ::MultiByteToWideChar(CP_ACP, 0, mbcsData, nConvertLen, 
                 (wchar_t*) lpData, (*lpcbData)/sizeof(wchar_t));
-            *lpcbData = nChars; // include NULL
+            *lpcbData = nChars; // include NULL 
         }
         else {
             ::CopyMemory(lpData, mbcsData.get(), dwDataLen);
@@ -467,13 +449,12 @@ RegQueryValueExW(
     return lResult;
 }
 
-LONG APIENTRY
-RegQueryValueW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegQueryValueW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     OUT LPWSTR lpValue,
     IN OUT PLONG   lpcbValue
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -504,13 +485,12 @@ RegQueryValueW(
     return lResult;
 }
 
-LONG APIENTRY
-RegReplaceKeyW(
-    IN HKEY     hKey,
+OCOW_DEF(LONG, RegReplaceKeyW,
+    (IN HKEY     hKey,
     IN LPCWSTR  lpSubKey,
     IN LPCWSTR  lpNewFile,
     IN LPCWSTR  lpOldFile
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -527,12 +507,11 @@ RegReplaceKeyW(
     return ::RegReplaceKeyA(hKey, mbcsSubKey, mbcsNewFile, mbcsOldFile);
 }
 
-LONG APIENTRY
-RegSaveKeyW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegSaveKeyW,
+    (IN HKEY hKey,
     IN LPCWSTR lpFile,
     IN LPSECURITY_ATTRIBUTES lpSecurityAttributes
-    )
+    ))
 {
     CMbcsBuffer mbcsFile;
     if (!mbcsFile.FromUnicode(lpFile))
@@ -541,15 +520,14 @@ RegSaveKeyW(
     return ::RegSaveKeyA(hKey, mbcsFile, lpSecurityAttributes);
 }
 
-LONG APIENTRY
-RegSetValueExW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegSetValueExW,
+    (IN HKEY hKey,
     IN LPCWSTR lpValueName,
     IN DWORD Reserved,
     IN DWORD dwType,
     IN CONST BYTE* lpData,
     IN DWORD cbData
-    )
+    ))
 {
     CMbcsBuffer mbcsValueName;
     if (!mbcsValueName.FromUnicode(lpValueName))
@@ -567,14 +545,13 @@ RegSetValueExW(
     return ::RegSetValueExA(hKey, mbcsValueName, Reserved, dwType, pData, cbData);
 }
 
-LONG APIENTRY
-RegSetValueW(
-    IN HKEY hKey,
+OCOW_DEF(LONG, RegSetValueW,
+    (IN HKEY hKey,
     IN LPCWSTR lpSubKey,
     IN DWORD dwType,
     IN LPCWSTR lpData,
     IN DWORD cbData
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -588,11 +565,10 @@ RegSetValueW(
     return ::RegSetValueA(hKey, mbcsSubKey, dwType, mbcsData, cbData);
 }
 
-LONG APIENTRY
-RegUnLoadKeyW(
-    IN HKEY    hKey,
+OCOW_DEF(LONG, RegUnLoadKeyW,
+    (IN HKEY    hKey,
     IN LPCWSTR lpSubKey
-    )
+    ))
 {
     CMbcsBuffer mbcsSubKey;
     if (!mbcsSubKey.FromUnicode(lpSubKey))
@@ -600,3 +576,4 @@ RegUnLoadKeyW(
 
     return ::RegUnLoadKeyA(hKey, mbcsSubKey);
 }
+}//EXTERN_C 

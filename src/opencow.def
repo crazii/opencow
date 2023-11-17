@@ -31,7 +31,7 @@
 ; the provisions above, a recipient may use your version of this file under
 ; the terms of any one of the MPL, the GPL or the LGPL.
 ;
-; ***** END LICENSE BLOCK *****
+; ***** END LICENSE BLOCK ***** 
 
 EXPORTS
 
@@ -82,7 +82,7 @@ EXPORTS
 ;    PageSetupDlgW
 ;    PrintDlgW
 ;    ReplaceTextW
-
+    
 ;gdi32
 ; NONE, see symbols.txt
 
@@ -106,7 +106,7 @@ EXPORTS
     ImmSetCompositionFontW
     ImmSetCompositionStringW
     ImmUnregisterWordW
-
+    
 ;kernel32.cpp
     AddAtomW
 ;    BeginUpdateResourceA
@@ -115,7 +115,7 @@ EXPORTS
 ;    BuildCommDCBW
 ;    CallNamedPipeW
 ;    CommConfigDialogW
-    CompareStringW
+;    CompareStringW
 ;    CopyFileExW
     CopyFileW
     CreateDirectoryExW
@@ -127,7 +127,7 @@ EXPORTS
     CreateMutexW
 ;    CreateNamedPipeW
     CreateProcessW
-    CreateSemaphoreW = OCOW_CreateSemaphoreW
+    CreateSemaphoreW
     CreateWaitableTimerW
     DeleteFileW
 ;    EndUpdateResourceA
@@ -172,7 +172,7 @@ EXPORTS
     GetLogicalDriveStringsW
     GetLongPathNameW
     GetModuleFileNameW
-    GetModuleHandleW = OCOW_GetModuleHandleW
+    GetModuleHandleW
 ;    GetNamedPipeHandleStateW
 ;    GetNumberFormatW
 ;    GetPrivateProfileIntW
@@ -193,7 +193,7 @@ EXPORTS
     GetTempFileNameW
     GetTempPathW
 ;    GetTimeFormatW
-    GetVersionExW = OCOW_GetVersionExW
+;    GetVersionExW
 ;    GetVolumeInformationW
     GetWindowsDirectoryW
     GlobalAddAtomW
@@ -282,7 +282,7 @@ EXPORTS
     _wrename
     _wstat
     _wstati64
-
+    
 ;msvfw32
 ;    GetOpenFileNamePreviewW
 ;    GetSaveFileNamePreviewW
@@ -357,7 +357,7 @@ EXPORTS
     ShellExecuteW
 ;    Shell_NotifyIconW
 
-;user32.cpp
+;user32.cpp    
 ;    AppendMenuW
 ;    BroadcastSystemMessageW
 ;    CallMsgFilterW

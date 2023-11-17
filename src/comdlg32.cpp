@@ -33,7 +33,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// define these symbols so that we don't get dllimport linkage
+// define these symbols so that we don't get dllimport linkage 
 // from the system headers
 #define _COMDLG32_
 
@@ -50,29 +50,29 @@
 // FindTextW
 // GetFileTitleW
 
-static BOOL
+static BOOL 
 OpenSaveFileNameW(
-    LPOPENFILENAMEW lpofn,
+    LPOPENFILENAMEW lpofn, 
     BOOL            aIsOpen
     )
 {
     OPENFILENAMEA ofnA;
     ::ZeroMemory(&ofnA, sizeof(ofnA));
 
-    ofnA.lStructSize = sizeof(ofnA);
+    ofnA.lStructSize = OPENFILENAME_SIZE_VERSION_400A;//sizeof(OPENFILENAME_NT4A);
     ofnA.hwndOwner = lpofn->hwndOwner;
     ofnA.hInstance = lpofn->hInstance;
 
     CMbcsBuffer mbcsFilter;
     if (lpofn->lpstrFilter) {
         int filterLen = 0;
-        int len = ::lstrlenW(lpofn->lpstrFilter);
+        int len = wcslen(lpofn->lpstrFilter);
         while (len > 0) {
             filterLen += len + 1;
-            len = ::lstrlenW(lpofn->lpstrFilter + filterLen);
+            len = wcslen(lpofn->lpstrFilter + filterLen);
         }
         ++filterLen;
-        if (!mbcsFilter.FromUnicode(lpofn->lpstrFilter, filterLen))
+        if (!mbcsFilter.FromUnicode(lpofn->lpstrFilter, filterLen)) 
             return FALSE;
         ofnA.lpstrFilter = mbcsFilter;
     }
@@ -80,11 +80,11 @@ OpenSaveFileNameW(
     CMbcsBuffer mbcsCustomFilter;
     if (lpofn->lpstrCustomFilter) {
         int customFilterLen = 0;
-        customFilterLen = ::lstrlenW(lpofn->lpstrCustomFilter) + 1;
-        customFilterLen += ::lstrlenW(lpofn->lpstrCustomFilter + customFilterLen) + 1;
+        customFilterLen = wcslen(lpofn->lpstrCustomFilter) + 1;
+        customFilterLen += wcslen(lpofn->lpstrCustomFilter + customFilterLen) + 1;
 
         // double the buffer space requested because MBCS can consume double that of Unicode (in chars)
-        if (!mbcsCustomFilter.FromUnicode(lpofn->lpstrCustomFilter, customFilterLen, lpofn->nMaxCustFilter * 2))
+        if (!mbcsCustomFilter.FromUnicode(lpofn->lpstrCustomFilter, customFilterLen, lpofn->nMaxCustFilter * 2)) 
             return FALSE;
         ofnA.lpstrCustomFilter = mbcsCustomFilter;
         ofnA.nMaxCustFilter = mbcsCustomFilter.BufferSize();
@@ -93,33 +93,33 @@ OpenSaveFileNameW(
     ofnA.nFilterIndex = lpofn->nFilterIndex;
 
     CMbcsBuffer mbcsFile;
-    if (!mbcsFile.FromUnicode(lpofn->lpstrFile))
+    if (!mbcsFile.FromUnicode(lpofn->lpstrFile)) 
         return FALSE;
     ofnA.lpstrFile = mbcsFile;
     ofnA.nMaxFile = mbcsFile.BufferSize();
 
     CMbcsBuffer mbcsFileTitle;
-    if (!mbcsFileTitle.FromUnicode(lpofn->lpstrFileTitle, -1, lpofn->nMaxFileTitle * 2))
+    if (!mbcsFileTitle.FromUnicode(lpofn->lpstrFileTitle, -1, lpofn->nMaxFileTitle * 2)) 
         return FALSE;
     ofnA.lpstrFileTitle = mbcsFileTitle;
     ofnA.nMaxFileTitle = mbcsFileTitle.BufferSize();
 
     CMbcsBuffer mbcsInitialDir;
-    if (!mbcsInitialDir.FromUnicode(lpofn->lpstrInitialDir))
+    if (!mbcsInitialDir.FromUnicode(lpofn->lpstrInitialDir)) 
         return FALSE;
     ofnA.lpstrInitialDir = mbcsInitialDir;
 
     CMbcsBuffer mbcsTitle;
-    if (!mbcsTitle.FromUnicode(lpofn->lpstrTitle))
+    if (!mbcsTitle.FromUnicode(lpofn->lpstrTitle)) 
         return FALSE;
     ofnA.lpstrTitle = mbcsTitle;
-
+    
     ofnA.Flags = lpofn->Flags;
     // nFileOffset
     // nFileExtension
-
+    
     CMbcsBuffer mbcsDefExt;
-    if (!mbcsDefExt.FromUnicode(lpofn->lpstrDefExt))
+    if (!mbcsDefExt.FromUnicode(lpofn->lpstrDefExt)) 
         return FALSE;
     ofnA.lpstrDefExt = mbcsDefExt;
 
@@ -127,7 +127,7 @@ OpenSaveFileNameW(
     ofnA.lpfnHook = lpofn->lpfnHook;
 
     CMbcsBuffer mbcsTemplateName;
-    if (!mbcsTemplateName.FromUnicode(lpofn->lpTemplateName))
+    if (!mbcsTemplateName.FromUnicode(lpofn->lpTemplateName)) 
         return FALSE;
     ofnA.lpTemplateName = mbcsTemplateName;
 
@@ -143,8 +143,8 @@ OpenSaveFileNameW(
         int fileLen = ::lstrlenA(ofnA.lpstrFile);
         if (fileLen > 0 && (ofnA.Flags & OFN_ALLOWMULTISELECT))
         {
-            // lpstrFile contains the directory and file name strings
-            // which are NULL separated, with an extra NULL character after the last file name.
+            // lpstrFile contains the directory and file name strings 
+            // which are NULL separated, with an extra NULL character after the last file name. 
             int totalLen = 0;
             while (fileLen > 0) {
                 totalLen += fileLen + 1;
@@ -172,21 +172,20 @@ OpenSaveFileNameW(
     return TRUE;
 }
 
-BOOL APIENTRY
-GetOpenFileNameW(
-    LPOPENFILENAMEW lpofn
-    )
+
+EXTERN_C {
+
+OCOW_DEF(BOOL, GetOpenFileNameW, (LPOPENFILENAMEW lpofn))
 {
     return OpenSaveFileNameW(lpofn, TRUE);
 }
 
-BOOL APIENTRY
-GetSaveFileNameW(
-    LPOPENFILENAMEW lpofn
-    )
+OCOW_DEF(BOOL, GetSaveFileNameW, (LPOPENFILENAMEW lpofn))
 {
     return OpenSaveFileNameW(lpofn, FALSE);
 }
+
+}//EXTERN_C 
 
 // PageSetupDlgW
 // PrintDlgW
