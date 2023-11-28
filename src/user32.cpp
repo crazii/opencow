@@ -38,7 +38,11 @@
 #define _USER32_
 
 #include <windows.h>
+#if defined(__MINGW64_VERSION_MAJOR)
 #include <crtdbg.h>
+#else
+#define _ASSERTE(...) 
+#endif
 
 #include "MbcsBuffer.h"
 
