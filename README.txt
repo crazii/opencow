@@ -45,7 +45,7 @@ Usage
 5. Distribute your application with opencow.dll in the same directory as the
    application.
 
-6. Use on MinGW: build opencow use the Makefile ```make -f Makefile.mingw```, and use -lopencow when linking.
+6. Use on MinGW: build opencow use the Makefile `make -f Makefile.mingw`, and use -lopencow when linking.
    The opencow output path need to be added to the libpath, i.e. -L/opencow/build
    Ensure that -lopencow is the first library before other libs.
    It's a static lib so you don't need extra dlls.
